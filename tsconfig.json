@@ -15,15 +15,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
-    "incremental": true,
-    "paths": {
-      "@safeurl/core": ["./packages/core/src"],
-      "@safeurl/core/*": ["./packages/core/src/*"],
-      "@safeurl/db": ["./packages/db/src"],
-      "@safeurl/db/*": ["./packages/db/src/*"]
-    }
+    "incremental": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist", "build", ".tilt"]
 }
-

@@ -1,6 +1,5 @@
 // Shared utility functions
 import { Result, ok, err } from "neverthrow";
-import { contentHashSchema } from "../audit/schemas";
 
 // ============================================================================
 // Content Hash Utilities

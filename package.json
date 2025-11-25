@@ -18,7 +18,7 @@
     "db:studio": "bun run --filter='@safeurl/db' db:studio"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "^1.3.3",
     "typescript": "^5.9.3"
   },
   "engines": {
