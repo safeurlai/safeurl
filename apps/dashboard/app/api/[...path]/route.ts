@@ -26,25 +26,25 @@ async function handleRequest(
   params: Promise<{ path: string[] }>,
   method: string
 ) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: { code: "authentication_error", message: "Authentication required" } },
-      { status: 401 }
-    );
-  }
-
-  const { path } = await params;
-  const apiPath = `/${path.join("/")}`;
-  const url = `${API_URL}${apiPath}`;
-
-  // Get Clerk token for backend authentication
-  const token = await getClerkToken();
-
-  const body = method === "POST" ? await request.text() : undefined;
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: { code: "authentication_error", message: "Authentication required" } },
+        { status: 401 }
+      );
+    }
+
+    const { path } = await params;
+    const apiPath = `/${path.join("/")}`;
+    const url = `${API_URL}${apiPath}`;
+
+    // Get Clerk token for backend authentication
+    const token = await getClerkToken();
+
+    const body = method === "POST" ? await request.text() : undefined;
+
     const response = await fetch(url, {
       method,
       headers: {
@@ -58,6 +58,13 @@ async function handleRequest(
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
+    // Handle auth errors specifically
+    if (error instanceof Error && error.message.includes("auth()")) {
+      return NextResponse.json(
+        { error: { code: "authentication_error", message: "Authentication failed" } },
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       { error: { code: "network_error", message: "Failed to connect to API" } },
       { status: 500 }
