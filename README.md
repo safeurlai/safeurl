@@ -9,24 +9,24 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 
 ### Core Product Goals
 
-• AI-driven, high-quality URL safety assessment.
-• Designed for privacy: no content persisted, metadata only.
-• Robust asynchronous workflow with queue + worker system.
-• Ephemeral, isolated URL fetch execution for security.
-• Fully containerized architecture.
-• Developer-friendly API, CLI, and MCP server.
+- AI-driven, high-quality URL safety assessment.
+- Designed for privacy: no content persisted, metadata only.
+- Robust asynchronous workflow with queue + worker system.
+- Ephemeral, isolated URL fetch execution for security.
+- Fully containerized architecture.
+- Developer-friendly API, CLI, and MCP server.
 
 ### Technical Requirements
 
-• Open-source with IP-protective license (recommended: BSL).
-• OAuth2/OIDC authentication via Clerk.
-• Primary DB: Turso (libSQL) for global low-latency access.
-• Queue: Redis using Asynq.
-• Workers and fetcher implemented in Go.
-• Dashboard + MCP server in TypeScript.
-• Pluggable LLM providers (OpenAI, DeepSeek, Kami, OSS models).
-• Crypto payments + credit-based billing.
-• Local development using Docker + Tilt.
+- Open-source with IP-protective license (recommended: BSL).
+- OAuth2/OIDC authentication via Clerk.
+- Primary DB: Turso (libSQL) for global low-latency access.
+- Queue: Redis using Asynq.
+- Workers and fetcher implemented in Go.
+- Dashboard + MCP server in TypeScript.
+- Pluggable LLM providers (OpenAI, DeepSeek, Kami, OSS models).
+- Crypto payments + credit-based billing.
+- Local development using Docker + Tilt.
 
 ⸻
 
@@ -90,16 +90,16 @@ flowchart TD
 
 **Responsibilities:**
 
-• Validates Clerk-issued JWTs.
-• Exposes:
+- Validates Clerk-issued JWTs.
+- Exposes:
 
-- POST /v1/scans
-- GET /v1/scans/:id
-- credit balance endpoints
-- webhook management
-  • Writes job rows to Turso.
-  • Pushes queued tasks into Redis.
-  • Stateless, horizontally scalable.
+* POST /v1/scans
+* GET /v1/scans/:id
+* credit balance endpoints
+* webhook management
+  - Writes job rows to Turso.
+  - Pushes queued tasks into Redis.
+  - Stateless, horizontally scalable.
 
 ⸻
 
@@ -107,16 +107,16 @@ flowchart TD
 
 **Stores durable state:**
 
-• Users (Clerk user IDs)
-• Credits (wallets)
-• Scan jobs + state
-• Result metadata:
+- Users (Clerk user IDs)
+- Credits (wallets)
+- Scan jobs + state
+- Result metadata:
 
-- categories
-- risk score
-- model used
-- content_hash
-- http status, headers, etc.
+* categories
+* risk score
+* model used
+* content_hash
+* http status, headers, etc.
 
 All transitions use optimistic concurrency to preserve state integrity.
 
@@ -126,11 +126,11 @@ All transitions use optimistic concurrency to preserve state integrity.
 
 **Handles async workflow:**
 
-• Job dispatch (scan:url)
-• Retries + exponential backoff
-• Dead-letter queues
-• Visibility timeouts
-• Horizontal scaling via worker concurrency
+- Job dispatch (scan:url)
+- Retries + exponential backoff
+- Dead-letter queues
+- Visibility timeouts
+- Horizontal scaling via worker concurrency
 
 **SaaS-friendly:** Upstash / Redis Cloud.
 
@@ -140,16 +140,16 @@ All transitions use optimistic concurrency to preserve state integrity.
 
 **Key functions:**
 
-• Dequeues tasks from Redis.
-• Claims scan job from Turso.
-• Performs state transitions:
+- Dequeues tasks from Redis.
+- Claims scan job from Turso.
+- Performs state transitions:
 
-- QUEUED → FETCHING
-- FETCHING → ANALYZING
-- ANALYZING → COMPLETED
-  • Spawns ephemeral fetcher containers using Docker SDK.
-  • Collects fetcher results & LLM output.
-  • Stores metadata in Turso.
+* QUEUED → FETCHING
+* FETCHING → ANALYZING
+* ANALYZING → COMPLETED
+  - Spawns ephemeral fetcher containers using Docker SDK.
+  - Collects fetcher results & LLM output.
+  - Stores metadata in Turso.
 
 ⸻
 
@@ -159,14 +159,14 @@ Launched per scan.
 
 **Inside the container:**
 
-• Strict-timeout URL fetcher
-• SSRF-safe networking
-• Optional screenshot or rendered DOM extraction
-• LLM provider call via adapters
-• Output returned via:
+- Strict-timeout URL fetcher
+- SSRF-safe networking
+- Optional screenshot or rendered DOM extraction
+- LLM provider call via adapters
+- Output returned via:
 
-- stdout JSON, or
-- internal service callback
+* stdout JSON, or
+* internal service callback
 
 Container always runs as `--rm`, leaving no state behind.
 
@@ -183,11 +183,12 @@ type AIClient interface {
 ```
 
 **Providers:**
-• OpenAI (Vision)
-• DeepSeek
-• Kami
-• Ollama (local)
-• Custom threat-model fine-tuned LLMs
+
+- OpenAI (Vision)
+- DeepSeek
+- Kami
+- Ollama (local)
+- Custom threat-model fine-tuned LLMs
 
 ⸻
 
@@ -195,12 +196,12 @@ type AIClient interface {
 
 **Provides:**
 
-• Scan history
-• Real-time job updates
-• API keys
-• Credit balance
-• Crypto payments
-• Developer tools
+- Scan history
+- Real-time job updates
+- API keys
+- Credit balance
+- Crypto payments
+- Developer tools
 
 ⸻
 
@@ -208,9 +209,9 @@ type AIClient interface {
 
 **Tools for agents & dev tools:**
 
-• `scan_url(url)`
-• `get_scan_status(jobId)`
-• `get_url_report(jobId)`
+- `scan_url(url)`
+- `get_scan_status(jobId)`
+- `get_url_report(jobId)`
 
 Thin wrapper over the public API.
 
@@ -234,9 +235,10 @@ stateDiagram-v2
 ```
 
 **Rules:**
-• Only valid transitions allowed.
-• Prevents concurrency races between workers.
-• Each step is updated atomically via Turso.
+
+- Only valid transitions allowed.
+- Prevents concurrency races between workers.
+- Each step is updated atomically via Turso.
 
 ⸻
 
@@ -272,20 +274,20 @@ sequenceDiagram
 
 ### Tools
 
-• Docker
-• Tilt (live reload)
-• Turso local dev
-• Redis local container
-• Go services (API, worker, fetcher)
-• Next.js dashboard
-• MCP server (Node)
+- Docker
+- Tilt (live reload)
+- Turso local dev
+- Redis local container
+- Go services (API, worker, fetcher)
+- Next.js dashboard
+- MCP server (Node)
 
 ### Local services via Tilt
 
-• localhost:8080 — API
-• localhost:3000 — Dashboard
-• localhost:6379 — Redis
-• turso file — local database
+- localhost:8080 — API
+- localhost:3000 — Dashboard
+- localhost:6379 — Redis
+- turso file — local database
 
 ⸻
 
@@ -294,21 +296,22 @@ sequenceDiagram
 **Recommended:**
 
 **Business Source License (BSL 1.1)**
-• Protects SaaS offering
-• Source available for all users
-• Automatically becomes Apache 2.0 after X years
+
+- Protects SaaS offering
+- Source available for all users
+- Automatically becomes Apache 2.0 after X years
 
 ⸻
 
 ## 8. Future Extensions
 
-• Batch scanning endpoints
-• Domain intelligence & aggregated risk scoring
-• Browser extension for real-time scanning
-• SIEM / SOC integrations
-• Attachment/file scanning
-• Custom fine-tuned LLM optimized for web threat detection
-• Queue partitioning for high-volume enterprise customers
+- Batch scanning endpoints
+- Domain intelligence & aggregated risk scoring
+- Browser extension for real-time scanning
+- SIEM / SOC integrations
+- Attachment/file scanning
+- Custom fine-tuned LLM optimized for web threat detection
+- Queue partitioning for high-volume enterprise customers
 
 ⸻
 
