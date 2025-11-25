@@ -3,7 +3,7 @@
 SafeURL.ai is an open-source, asynchronous, AI-powered URL safety screening service built with isolation, privacy, and developer-friendliness at its core.
 It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed job queue, while persisting only metadata in Turso.
 
-⸻
+---
 
 ## 1. Goals & Requirements
 
@@ -28,7 +28,7 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 - Crypto payments + credit-based billing.
 - Local development using Docker + Tilt.
 
-⸻
+---
 
 ## 2. High-Level Architecture
 
@@ -82,7 +82,7 @@ flowchart TD
     CLIENT -->|Query result| API
 ```
 
-⸻
+---
 
 ## 3. Component Breakdown
 
@@ -101,7 +101,7 @@ flowchart TD
   - Pushes queued tasks into Redis.
   - Stateless, horizontally scalable.
 
-⸻
+---
 
 ### 3.2 Turso Database (libSQL)
 
@@ -120,7 +120,7 @@ flowchart TD
 
 All transitions use optimistic concurrency to preserve state integrity.
 
-⸻
+---
 
 ### 3.3 Redis Queue (Asynq)
 
@@ -134,7 +134,7 @@ All transitions use optimistic concurrency to preserve state integrity.
 
 **SaaS-friendly:** Upstash / Redis Cloud.
 
-⸻
+---
 
 ### 3.4 Worker Service (Go)
 
@@ -151,7 +151,7 @@ All transitions use optimistic concurrency to preserve state integrity.
   - Collects fetcher results & LLM output.
   - Stores metadata in Turso.
 
-⸻
+---
 
 ### 3.5 Ephemeral Fetcher Container (Go binary)
 
@@ -170,7 +170,7 @@ Launched per scan.
 
 Container always runs as `--rm`, leaving no state behind.
 
-⸻
+---
 
 ### 3.6 LLM Provider Adapter Layer
 
@@ -190,7 +190,7 @@ type AIClient interface {
 - Ollama (local)
 - Custom threat-model fine-tuned LLMs
 
-⸻
+---
 
 ### 3.7 Dashboard (Next.js + Clerk)
 
@@ -203,7 +203,7 @@ type AIClient interface {
 - Crypto payments
 - Developer tools
 
-⸻
+---
 
 ### 3.8 MCP Server (TypeScript)
 
@@ -215,7 +215,7 @@ type AIClient interface {
 
 Thin wrapper over the public API.
 
-⸻
+---
 
 ## 4. State Machine
 
@@ -240,7 +240,7 @@ stateDiagram-v2
 - Prevents concurrency races between workers.
 - Each step is updated atomically via Turso.
 
-⸻
+---
 
 ## 5. Job Lifecycle (Sequence)
 
@@ -268,7 +268,7 @@ sequenceDiagram
     API->>C: Return scan result
 ```
 
-⸻
+---
 
 ## 6. Development Environment
 
@@ -289,7 +289,7 @@ sequenceDiagram
 - localhost:6379 — Redis
 - turso file — local database
 
-⸻
+---
 
 ## 7. Licensing
 
@@ -301,7 +301,7 @@ sequenceDiagram
 - Source available for all users
 - Automatically becomes Apache 2.0 after X years
 
-⸻
+---
 
 ## 8. Future Extensions
 
@@ -313,7 +313,7 @@ sequenceDiagram
 - Custom fine-tuned LLM optimized for web threat detection
 - Queue partitioning for high-volume enterprise customers
 
-⸻
+---
 
 ## 9. Proposed Repository Structure
 
