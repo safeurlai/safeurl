@@ -1,6 +1,6 @@
 # Phase 6: Worker Service
 
-**Status:** Not Started  
+**Status:** Completed  
 **Dependencies:** Phase 1, Phase 2, Phase 3, Phase 4, Phase 5  
 **Estimated Time:** 4-5 days
 
@@ -12,15 +12,15 @@ Implement the worker service that processes scan jobs from the queue, manages st
 
 ## 6.1 Worker Package Setup (`apps/worker`)
 
-- [ ] Create worker entry point
-- [ ] Install dependencies:
+- [x] Create worker entry point
+- [x] Install dependencies:
   - `bullmq` for queue processing
   - `dockerode` or Bun Docker API
   - `@safeurl/core` (workspace)
   - `@safeurl/db` (workspace)
   - `@safeurl/mastra` (workspace)
-- [ ] Set up environment variables
-- [ ] Configure logging
+- [x] Set up environment variables
+- [x] Configure logging
 
 ### Worker Structure
 
@@ -50,39 +50,39 @@ apps/worker/
 
 ### BullMQ Setup
 
-- [ ] **Configure Redis Connection**:
-  - [ ] Read connection string from environment
-  - [ ] Set up connection pool
-  - [ ] Handle connection errors
-- [ ] **Create Queue Instance**:
-  - [ ] Queue name: "scan:url"
-  - [ ] Configure queue options
-  - [ ] Set up queue events
-- [ ] **Set Up Worker**:
-  - [ ] Configure worker concurrency
-  - [ ] Set up job processor
-  - [ ] Configure retry strategy
-- [ ] **Retry and Backoff Strategies**:
-  - [ ] Exponential backoff for failures
-  - [ ] Max retry attempts
-  - [ ] Dead-letter queue for failed jobs
+- [x] **Configure Redis Connection**:
+  - [x] Read connection string from environment
+  - [x] Set up connection pool
+  - [x] Handle connection errors
+- [x] **Create Queue Instance**:
+  - [x] Queue name: "scan-jobs" (matches API service)
+  - [x] Configure queue options
+  - [x] Set up queue events
+- [x] **Set Up Worker**:
+  - [x] Configure worker concurrency
+  - [x] Set up job processor
+  - [x] Configure retry strategy
+- [x] **Retry and Backoff Strategies**:
+  - [x] Exponential backoff for failures
+  - [x] Max retry attempts
+  - [x] Dead-letter queue for failed jobs
 
 ### Job Handler
 
-- [ ] **Dequeue scan:url Jobs**:
-  - [ ] Process jobs from queue
-  - [ ] Extract job ID from payload
-  - [ ] Handle job errors
-- [ ] **Claim Job from Database**:
-  - [ ] Fetch job by ID
-  - [ ] Check current state
-  - [ ] Use optimistic locking (version field)
-  - [ ] Handle race conditions
-- [ ] **Update State: QUEUED → FETCHING**:
-  - [ ] Atomic state transition
-  - [ ] Increment version
-  - [ ] Use database transaction
-  - [ ] Return Result type
+- [x] **Dequeue scan-jobs Jobs**:
+  - [x] Process jobs from queue
+  - [x] Extract job ID from payload
+  - [x] Handle job errors
+- [x] **Claim Job from Database**:
+  - [x] Fetch job by ID
+  - [x] Check current state
+  - [x] Use optimistic locking (version field)
+  - [x] Handle race conditions
+- [x] **Update State: QUEUED → FETCHING**:
+  - [x] Atomic state transition
+  - [x] Increment version
+  - [x] Use database transaction
+  - [x] Return Result type
 
 ---
 
@@ -90,31 +90,31 @@ apps/worker/
 
 ### State Transition Validation
 
-- [ ] **Implement Transition Rules**:
-  - [ ] Define allowed transitions
-  - [ ] Validate transitions before applying
-  - [ ] Return error for invalid transitions
-- [ ] **State Transition Functions**:
-  - [ ] `transitionToFetching()` - QUEUED → FETCHING
-  - [ ] `transitionToAnalyzing()` - FETCHING → ANALYZING
-  - [ ] `transitionToCompleted()` - ANALYZING → COMPLETED
-  - [ ] `transitionToFailed()` - Any → FAILED
-  - [ ] `transitionToTimedOut()` - FETCHING/ANALYZING → TIMED_OUT
-- [ ] **Use Drizzle Transactions**:
-  - [ ] All state transitions in transactions
-  - [ ] Ensure atomicity
-  - [ ] Rollback on error
-- [ ] **Version Checking**:
-  - [ ] Check version before update
-  - [ ] Increment version on update
-  - [ ] Handle version conflicts
-  - [ ] Return appropriate errors
+- [x] **Implement Transition Rules**:
+  - [x] Define allowed transitions
+  - [x] Validate transitions before applying
+  - [x] Return error for invalid transitions
+- [x] **State Transition Functions**:
+  - [x] `transitionToFetching()` - QUEUED → FETCHING
+  - [x] `transitionToAnalyzing()` - FETCHING → ANALYZING
+  - [x] `transitionToCompleted()` - ANALYZING → COMPLETED
+  - [x] `transitionToFailed()` - Any → FAILED
+  - [x] `transitionToTimedOut()` - FETCHING/ANALYZING → TIMED_OUT
+- [x] **Use Drizzle Transactions**:
+  - [x] All state transitions in transactions
+  - [x] Ensure atomicity
+  - [x] Rollback on error
+- [x] **Version Checking**:
+  - [x] Check version before update
+  - [x] Increment version on update
+  - [x] Handle version conflicts
+  - [x] Return appropriate errors
 
 ### State Transition Schema
 
-- [ ] Use Zod schema to validate transitions
-- [ ] Ensure only valid states are set
-- [ ] Validate state enum values
+- [x] Use Zod schema to validate transitions
+- [x] Ensure only valid states are set
+- [x] Validate state enum values
 
 ---
 
@@ -122,46 +122,46 @@ apps/worker/
 
 ### Docker Integration
 
-- [ ] **Spawn Ephemeral Fetcher Container**:
-  - [ ] Use Docker SDK (dockerode or Bun API)
-  - [ ] Pull fetcher image if needed
-  - [ ] Create container with job ID and URL as env vars
-  - [ ] Configure container limits:
+- [x] **Spawn Ephemeral Fetcher Container**:
+  - [x] Use Docker SDK (dockerode)
+  - [x] Pull fetcher image if needed
+  - [x] Create container with job ID and URL as env vars
+  - [x] Configure container limits:
     - Memory limit
     - CPU limit
     - Timeout limit
-  - [ ] Set `--rm` flag for automatic cleanup
-- [ ] **Container Configuration**:
-  - [ ] Network isolation
-  - [ ] Resource limits
-  - [ ] Environment variables
-  - [ ] Volume mounts (if needed)
-- [ ] **Container Lifecycle**:
-  - [ ] Start container
-  - [ ] Monitor container status
-  - [ ] Handle container timeouts
-  - [ ] Clean up on completion/error
+  - [x] Set `--rm` flag for automatic cleanup
+- [x] **Container Configuration**:
+  - [x] Network isolation
+  - [x] Resource limits
+  - [x] Environment variables
+  - [x] Volume mounts (if needed)
+- [x] **Container Lifecycle**:
+  - [x] Start container
+  - [x] Monitor container status
+  - [x] Handle container timeouts
+  - [x] Clean up on completion/error
 
 ### Result Collection
 
-- [ ] **Read stdout JSON**:
-  - [ ] Capture container stdout
-  - [ ] Parse JSON output
-  - [ ] Handle parsing errors
-- [ ] **Validate Output**:
-  - [ ] Validate with Zod schema from `@safeurl/core`
-  - [ ] Ensure required fields present
-  - [ ] Verify no content fields
-- [ ] **Handle Container Failures**:
-  - [ ] Detect container exit codes
-  - [ ] Handle timeouts
-  - [ ] Handle crashes
-  - [ ] Extract error information
-- [ ] **Parse and Validate Results**:
-  - [ ] Use Result types for validation
-  - [ ] Extract scan results
-  - [ ] Extract audit log data
-  - [ ] Handle validation errors
+- [x] **Read stdout JSON**:
+  - [x] Capture container stdout
+  - [x] Parse JSON output
+  - [x] Handle parsing errors
+- [x] **Validate Output**:
+  - [x] Validate with Zod schema from `@safeurl/core`
+  - [x] Ensure required fields present
+  - [x] Verify no content fields
+- [x] **Handle Container Failures**:
+  - [x] Detect container exit codes
+  - [x] Handle timeouts
+  - [x] Handle crashes
+  - [x] Extract error information
+- [x] **Parse and Validate Results**:
+  - [x] Use Result types for validation
+  - [x] Extract scan results
+  - [x] Extract audit log data
+  - [x] Handle validation errors
 
 ---
 
@@ -169,59 +169,66 @@ apps/worker/
 
 ### Process Scan Results
 
-- [ ] **Update State: FETCHING → ANALYZING**:
-  - [ ] Transition state atomically
-  - [ ] Increment version
-  - [ ] Use database transaction
-- [ ] **Store Scan Results**:
-  - [ ] Insert into scan_results table
-  - [ ] Validate all fields
-  - [ ] Ensure no content is stored
-  - [ ] Use Result types
-- [ ] **Write Audit Log Entry**:
-  - [ ] Create audit log entry (metadata only)
-  - [ ] Use audit logger from `@safeurl/core`
-  - [ ] Ensure append-only write
-  - [ ] Verify no content fields
-- [ ] **Update State: ANALYZING → COMPLETED**:
-  - [ ] Final state transition
-  - [ ] Mark job as complete
-  - [ ] Update timestamps
-- [ ] **Handle Errors**:
-  - [ ] Catch all errors
-  - [ ] Update state to FAILED
-  - [ ] Log error details
-  - [ ] Don't expose sensitive information
-- [ ] **All Operations Use Result Types**:
-  - [ ] Wrap all operations in Result
-  - [ ] Chain operations with `.andThen()`
-  - [ ] Handle errors explicitly
-  - [ ] Return appropriate error types
+- [x] **Update State: FETCHING → ANALYZING**:
+  - [x] Transition state atomically
+  - [x] Increment version
+  - [x] Use database transaction
+- [x] **Store Scan Results**:
+  - [x] Insert into scan_results table
+  - [x] Validate all fields
+  - [x] Ensure no content is stored
+  - [x] Use Result types
+- [x] **Write Audit Log Entry**:
+  - [x] Create audit log entry (metadata only)
+  - [x] Use audit logger from `@safeurl/core`
+  - [x] Ensure append-only write
+  - [x] Verify no content fields
+- [x] **Update State: ANALYZING → COMPLETED**:
+  - [x] Final state transition
+  - [x] Mark job as complete
+  - [x] Update timestamps
+- [x] **Handle Errors**:
+  - [x] Catch all errors
+  - [x] Update state to FAILED
+  - [x] Log error details
+  - [x] Don't expose sensitive information
+- [x] **All Operations Use Result Types**:
+  - [x] Wrap all operations in Result
+  - [x] Chain operations with `.andThen()`
+  - [x] Handle errors explicitly
+  - [x] Return appropriate error types
 
 ### Error Recovery
 
-- [ ] **Retry Logic**:
-  - [ ] Retry transient failures
-  - [ ] Don't retry permanent failures
-  - [ ] Exponential backoff
-- [ ] **Dead Letter Queue**:
-  - [ ] Move failed jobs to DLQ
-  - [ ] Log failure reasons
-  - [ ] Alert on DLQ growth
+- [x] **Retry Logic**:
+  - [x] Retry transient failures
+  - [x] Don't retry permanent failures
+  - [x] Exponential backoff
+- [x] **Dead Letter Queue**:
+  - [x] Move failed jobs to DLQ (via BullMQ configuration)
+  - [x] Log failure reasons
+  - [x] Alert on DLQ growth (via BullMQ events)
 
 ---
 
 ## Success Criteria
 
-- [ ] Worker processes jobs from queue
-- [ ] State transitions work correctly
-- [ ] Containers spawn and complete successfully
-- [ ] Results are stored correctly
-- [ ] Audit logs are created
-- [ ] Error handling is robust
-- [ ] No content is persisted
-- [ ] All operations use Result types
-- [ ] Optimistic concurrency prevents races
+- [x] Worker processes jobs from queue
+- [x] State transitions work correctly
+- [x] Containers spawn and complete successfully
+- [x] Results are stored correctly
+- [x] Audit logs are created
+- [x] Error handling is robust
+- [x] No content is persisted
+- [x] All operations use Result types
+- [x] Optimistic concurrency prevents races
+
+## Additional Implementation
+
+- [x] Dockerfile created for containerization
+- [x] Docker Compose configuration added
+- [x] Tiltfile updated for local development
+- [x] README.md documentation created
 
 ---
 
@@ -234,4 +241,3 @@ apps/worker/
 - Keep state transitions atomic
 - Log all state changes for debugging
 - Test with concurrent workers
-
