@@ -21,9 +21,9 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 - Open-source with IP-protective license (recommended: BSL).
 - OAuth2/OIDC authentication via Clerk.
 - Primary DB: Turso (libSQL) for global low-latency access.
-- Queue: Redis using Asynq.
-- Workers and fetcher implemented in Go.
-- Dashboard + MCP server in TypeScript.
+- Queue: Redis using BullMQ (Bun-compatible).
+- All services implemented in TypeScript/Bun (API, workers, fetcher).
+- Dashboard + MCP server in TypeScript/Bun.
 - Pluggable LLM providers (OpenAI, DeepSeek, Kami, OSS models).
 - Crypto payments + credit-based billing.
 - Local development using Docker + Tilt.
@@ -40,7 +40,7 @@ flowchart TD
         A3["CLI / API Clients"]
     end
 
-    subgraph API["API Service (Go + Clerk)"]
+    subgraph API["API Service (Bun + Clerk)"]
         B1["Auth (Clerk OIDC)"]
         B2["Scan API"]
         B3["Credits API"]
@@ -53,11 +53,11 @@ flowchart TD
         C4["URL Metadata"]
     end
 
-    subgraph QUEUE["Redis Queue (Asynq)"]
+    subgraph QUEUE["Redis Queue (BullMQ)"]
         D1["scan:url Tasks"]
     end
 
-    subgraph WORKER["Worker Service (Go)"]
+    subgraph WORKER["Worker Service (Bun)"]
         E1["Dequeue Task"]
         E2["State Machine"]
         E3["Spawn Fetcher Container"]
@@ -86,7 +86,7 @@ flowchart TD
 
 ## 3. Component Breakdown
 
-### 3.1 API Service (Go)
+### 3.1 API Service (Bun + TypeScript)
 
 **Responsibilities:**
 
@@ -98,8 +98,9 @@ flowchart TD
 * credit balance endpoints
 * webhook management
   - Writes job rows to Turso.
-  - Pushes queued tasks into Redis.
+  - Pushes queued tasks into Redis (BullMQ).
   - Stateless, horizontally scalable.
+  - Built with Bun's native HTTP server for high performance.
 
 ---
 
@@ -122,7 +123,7 @@ All transitions use optimistic concurrency to preserve state integrity.
 
 ---
 
-### 3.3 Redis Queue (Asynq)
+### 3.3 Redis Queue (BullMQ)
 
 **Handles async workflow:**
 
@@ -131,37 +132,39 @@ All transitions use optimistic concurrency to preserve state integrity.
 - Dead-letter queues
 - Visibility timeouts
 - Horizontal scaling via worker concurrency
+- TypeScript-first API, fully compatible with Bun
 
 **SaaS-friendly:** Upstash / Redis Cloud.
 
 ---
 
-### 3.4 Worker Service (Go)
+### 3.4 Worker Service (Bun + TypeScript)
 
 **Key functions:**
 
-- Dequeues tasks from Redis.
+- Dequeues tasks from Redis (BullMQ).
 - Claims scan job from Turso.
 - Performs state transitions:
 
 * QUEUED → FETCHING
 * FETCHING → ANALYZING
 * ANALYZING → COMPLETED
-  - Spawns ephemeral fetcher containers using Docker SDK.
+  - Spawns ephemeral fetcher containers using Docker SDK (via `dockerode` or Bun-native Docker API).
   - Collects fetcher results & LLM output.
   - Stores metadata in Turso.
+  - Leverages Bun's fast runtime and native async capabilities.
 
 ---
 
-### 3.5 Ephemeral Fetcher Container (Go binary)
+### 3.5 Ephemeral Fetcher Container (Bun + TypeScript)
 
 Launched per scan.
 
 **Inside the container:**
 
-- Strict-timeout URL fetcher
+- Strict-timeout URL fetcher (using Bun's native fetch)
 - SSRF-safe networking
-- Optional screenshot or rendered DOM extraction
+- Optional screenshot or rendered DOM extraction (via Puppeteer/Playwright)
 - LLM provider call via adapters
 - Output returned via:
 
@@ -169,6 +172,7 @@ Launched per scan.
 * internal service callback
 
 Container always runs as `--rm`, leaving no state behind.
+Built with Bun for fast startup and execution.
 
 ---
 
@@ -176,9 +180,9 @@ Container always runs as `--rm`, leaving no state behind.
 
 **Unified interface:**
 
-```go
-type AIClient interface {
-    AnalyzeURL(ctx context.Context, fetch FetchResult) (AnalysisResult, error)
+```typescript
+interface AIClient {
+  analyzeURL(ctx: Context, fetch: FetchResult): Promise<AnalysisResult>;
 }
 ```
 
@@ -190,9 +194,11 @@ type AIClient interface {
 - Ollama (local)
 - Custom threat-model fine-tuned LLMs
 
+All adapters implemented in TypeScript, leveraging Bun's native fetch and Web APIs.
+
 ---
 
-### 3.7 Dashboard (Next.js + Clerk)
+### 3.7 Dashboard (Next.js + Clerk + Bun)
 
 **Provides:**
 
@@ -203,9 +209,11 @@ type AIClient interface {
 - Crypto payments
 - Developer tools
 
+Runs on Bun runtime for optimal performance and fast hot reloading.
+
 ---
 
-### 3.8 MCP Server (TypeScript)
+### 3.8 MCP Server (Bun + TypeScript)
 
 **Tools for agents & dev tools:**
 
@@ -214,6 +222,7 @@ type AIClient interface {
 - `get_url_report(jobId)`
 
 Thin wrapper over the public API.
+Built with Bun for fast startup and low latency.
 
 ---
 
@@ -278,9 +287,9 @@ sequenceDiagram
 - Tilt (live reload)
 - Turso local dev
 - Redis local container
-- Go services (API, worker, fetcher)
-- Next.js dashboard
-- MCP server (Node)
+- Bun runtime (all services: API, worker, fetcher)
+- Next.js dashboard (Bun runtime)
+- MCP server (Bun)
 
 ### Local services via Tilt
 
@@ -319,11 +328,11 @@ sequenceDiagram
 
 ```
 safeurl/
-├── api/              # Go HTTP API
-├── worker/           # Go worker + Asynq
-├── fetcher/          # Ephemeral fetcher (Go)
-├── dashboard/        # Next.js + Clerk
-├── mcp-server/       # TypeScript MCP implementation
+├── api/              # Bun HTTP API (TypeScript)
+├── worker/           # Bun worker + BullMQ (TypeScript)
+├── fetcher/          # Ephemeral fetcher (Bun + TypeScript)
+├── dashboard/        # Next.js + Clerk (Bun runtime)
+├── mcp-server/       # Bun MCP server (TypeScript)
 ├── db/               # Turso schema + migrations
 ├── infra/
 │   ├── docker/
