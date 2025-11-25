@@ -53,6 +53,7 @@ Set up the Bun monorepo structure, initialize core packages, and configure the d
 - [ ] Set up `package.json` with dependencies:
   - `zod` for schema validation
   - `neverthrow` for Result types
+  - `zod-to-json-schema` for OpenAPI integration (ElysiaJS)
   - TypeScript types
 - [ ] Create base directory structure:
   - `schemas/` (api, scan, user subdirectories)

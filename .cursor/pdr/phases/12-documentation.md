@@ -12,16 +12,31 @@ Create comprehensive documentation including API docs, developer guides, user do
 
 ## 12.1 API Documentation
 
-- [ ] **OpenAPI/Swagger Specification**:
-  - [ ] Generate OpenAPI spec from code
-  - [ ] Document all endpoints
-  - [ ] Include request/response schemas
-  - [ ] Include authentication requirements
+- [ ] **OpenAPI/Swagger Specification** (Automatic via ElysiaJS):
+  - [ ] Verify OpenAPI spec is auto-generated from ElysiaJS routes
+  - [ ] Access Swagger UI at `/openapi` endpoint
+  - [ ] Access OpenAPI JSON at `/openapi/json`
+  - [ ] Verify all endpoints are documented
+  - [ ] Verify request/response schemas are included (from Zod)
+  - [ ] Verify authentication requirements are documented
+  - [ ] Configure OpenAPI plugin metadata (title, version, description)
+  - [ ] Set up tags for endpoint grouping
+  - [ ] Configure security schemes (Bearer JWT)
+- [ ] **Route Documentation** (via ElysiaJS `detail` objects):
+  - [ ] Add `summary` to all routes
+  - [ ] Add `description` for complex endpoints
+  - [ ] Add `tags` for organization
+  - [ ] Add `security` requirements
+  - [ ] Add examples for request/response payloads
 - [ ] **Endpoint Documentation**:
-  - [ ] Document each endpoint
-  - [ ] Include examples
-  - [ ] Include error responses
-  - [ ] Include rate limits
+  - [ ] Verify each endpoint has clear documentation in Swagger UI
+  - [ ] Include examples in OpenAPI spec
+  - [ ] Include error responses (automatic from schemas)
+  - [ ] Include rate limits (document in description)
+- [ ] **Zod Schema Integration**:
+  - [ ] Verify Zod schemas convert to OpenAPI schemas correctly
+  - [ ] Configure `zod-to-json-schema` mapper
+  - [ ] Test schema conversion works for all endpoints
 - [ ] **Authentication Guide**:
   - [ ] Clerk JWT setup
   - [ ] API key generation

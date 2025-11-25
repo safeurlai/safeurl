@@ -27,10 +27,93 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 - Functional error handling: neverthrow for explicit, type-safe error handling with `Result<T, E>` types.
 - All services implemented in TypeScript/Bun (API, workers, fetcher).
 - Dashboard + MCP server in TypeScript/Bun.
+- **API Framework: ElysiaJS** - Fast, type-safe web framework built for Bun with excellent TypeScript inference and plugin ecosystem.
 - Mastra framework for agentic capabilities and LLM provider abstraction.
 - Pluggable LLM providers via Mastra (OpenAI, Anthropic, Google, DeepSeek, Kami, Ollama, and 600+ models).
 - Crypto payments + credit-based billing.
 - Local development using Docker + Tilt.
+
+### Performance Requirements
+
+- **API Response Times**:
+  - Non-scan endpoints (GET, status checks): < 200ms p95
+  - Scan creation (POST /v1/scans): < 500ms p95
+  - Result retrieval: < 200ms p95
+- **Worker Processing**:
+  - Job processing latency: < 30s p95 (from QUEUED to COMPLETED)
+  - Container startup time: < 2s p95
+  - Concurrent job processing: Support 100+ concurrent scans
+- **Scalability**:
+  - Horizontal scaling for API service (stateless design)
+  - Worker auto-scaling based on queue depth
+  - Database connection pooling and edge replication via Turso
+- **Throughput**:
+  - Support 1000+ scans per minute per worker instance
+  - API capable of handling 10,000+ requests per minute
+
+### Security Requirements
+
+- **Authentication & Authorization**:
+  - JWT validation for all protected endpoints
+  - API key authentication for programmatic access
+  - Role-based access control (RBAC) for admin operations
+  - Rate limiting per user/API key
+- **Input Validation**:
+  - SSRF protection: Strict URL validation preventing internal network access
+  - URL whitelist/blacklist for known malicious domains
+  - Request size limits (max URL length, payload size)
+  - Content-Type validation
+- **Container Security**:
+  - Ephemeral containers with no persistent storage
+  - Network isolation (no access to internal services)
+  - Resource limits (CPU, memory, timeout)
+  - Read-only filesystem where possible
+  - Non-root user execution
+- **Data Protection**:
+  - No content persistence (metadata only)
+  - Encrypted audit logs at rest
+  - Secure credential management (environment variables, secrets)
+  - HTTPS/TLS for all external communications
+- **Compliance**:
+  - GDPR compliance (right to deletion, data portability)
+  - SOC 2 Type II readiness
+  - Audit trail immutability
+  - Data retention policies
+
+### Reliability Requirements
+
+- **Availability**:
+  - 99.9% uptime SLA (target)
+  - Graceful degradation during LLM provider outages
+  - Health check endpoints for monitoring
+- **Error Handling**:
+  - Comprehensive error logging and alerting
+  - Dead-letter queue for failed jobs
+  - Automatic retries with exponential backoff
+  - Circuit breakers for external service calls
+- **Data Integrity**:
+  - Atomic state transitions via database transactions
+  - Optimistic concurrency control
+  - Idempotent API operations
+  - Credit deduction atomicity guarantees
+
+### Developer Experience Requirements
+
+- **API Design**:
+  - RESTful API with consistent error responses
+  - OpenAPI/Swagger documentation
+  - SDK support (TypeScript/JavaScript first)
+  - Clear, actionable error messages
+- **Documentation**:
+  - Comprehensive API documentation
+  - Integration guides and examples
+  - Architecture decision records (ADRs)
+  - Runbook for operations
+- **Local Development**:
+  - One-command local setup (Docker Compose or Tilt)
+  - Hot reloading for all services
+  - Mock services for external dependencies
+  - Development seed data
 
 ---
 
@@ -90,26 +173,184 @@ flowchart TD
 
 ## 3. Component Breakdown
 
-### 3.1 API Service (Bun + TypeScript)
+### 3.1 API Service (ElysiaJS + Bun + TypeScript)
 
 **Responsibilities:**
 
-- Validates Clerk-issued JWTs.
-- Exposes:
+- Validates Clerk-issued JWTs via ElysiaJS plugins.
+- Exposes RESTful API endpoints:
 
-* POST /v1/scans
-* GET /v1/scans/:id
-* credit balance endpoints
-* webhook management
-  - Writes job rows to Turso via Drizzle ORM.
-  - Pushes queued tasks into Redis (BullMQ).
-  - Stateless, horizontally scalable.
-  - Built with Bun's native HTTP server for high performance.
-  - Type-safe database operations with Drizzle's TypeScript-first API.
-  - Runtime request/response validation using Zod schemas from `@safeurl/core`.
-  - Validates all API inputs and outputs for type safety and security.
-  - Functional error handling with neverthrow `Result<T, E>` types.
-  - All failable operations return `Result` or `ResultAsync`, making errors explicit and type-safe.
+* POST /v1/scans - Create a new URL scan job
+* GET /v1/scans/:id - Retrieve scan result by job ID
+* GET /v1/scans - List user's scan history (paginated)
+* GET /v1/credits/balance - Get current credit balance
+* POST /v1/credits/purchase - Purchase credits (crypto payment)
+* GET /v1/webhooks - List configured webhooks
+* POST /v1/webhooks - Create webhook endpoint
+* DELETE /v1/webhooks/:id - Delete webhook
+* GET /v1/health - Health check endpoint
+* GET /v1/metrics - Prometheus metrics (optional)
+
+- Writes job rows to Turso via Drizzle ORM.
+- Pushes queued tasks into Redis (BullMQ).
+- Stateless, horizontally scalable design.
+
+**ElysiaJS Framework:**
+
+Built with [ElysiaJS](https://elysiajs.com/quick-start.html) - A fast, type-safe web framework optimized for Bun:
+
+- **Performance**: Optimized for Bun runtime with native performance
+- **Type Safety**: Excellent TypeScript inference and compile-time type checking
+- **Plugin Ecosystem**: Rich plugin ecosystem for common functionality:
+  - `@elysiajs/bearer` - Bearer token authentication
+  - `@elysiajs/cors` - CORS configuration
+  - `@elysiajs/jwt` - JWT validation (for Clerk integration)
+  - `@elysiajs/openapi` - OpenAPI/Swagger documentation generation
+  - `@elysiajs/opentelemetry` - OpenTelemetry observability and tracing
+  - Custom plugins for rate limiting, logging, etc.
+- **Built-in Validation**: Native support for Zod schemas with automatic type inference
+- **Lifecycle Hooks**: Request/response lifecycle hooks for middleware and error handling
+- **Developer Experience**:
+  - Hot reloading with `bun dev` command
+  - Clean, intuitive API design
+  - Excellent error messages
+  - Auto-completion and type inference in IDE
+
+**Example ElysiaJS Setup:**
+
+```typescript
+import { Elysia } from "elysia";
+import { bearer } from "@elysiajs/bearer";
+import { cors } from "@elysiajs/cors";
+import { openapi } from "@elysiajs/openapi";
+import { opentelemetry } from "@elysiajs/opentelemetry";
+import { z } from "zod";
+import { createScanRequestSchema } from "@safeurl/core";
+
+const app = new Elysia()
+  // OpenAPI documentation (accessible at /openapi)
+  .use(
+    openapi({
+      documentation: {
+        info: {
+          title: "SafeURL.ai API",
+          version: "1.0.0",
+          description: "AI-powered URL safety screening service",
+        },
+        tags: [
+          { name: "Scans", description: "URL scanning endpoints" },
+          { name: "Credits", description: "Credit management endpoints" },
+          { name: "Webhooks", description: "Webhook management endpoints" },
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: "http",
+              scheme: "bearer",
+              bearerFormat: "JWT",
+            },
+          },
+        },
+      },
+    })
+  )
+  // OpenTelemetry for observability
+  .use(
+    opentelemetry({
+      serviceName: "safeurl-api",
+      serviceVersion: "1.0.0",
+    })
+  )
+  .use(cors())
+  .use(bearer())
+  .group(
+    "/v1",
+    (app) =>
+      app
+        .post(
+          "/scans",
+          async ({ body, bearer }) => {
+            // Process scan creation...
+            return { jobId: "...", status: "QUEUED" };
+          },
+          {
+            body: createScanRequestSchema, // Automatic validation
+            detail: {
+              summary: "Create a new URL scan job",
+              tags: ["Scans"],
+              security: [{ bearerAuth: [] }],
+            },
+          }
+        )
+        .get(
+          "/scans/:id",
+          async ({ params }) => {
+            // Retrieve scan result...
+          },
+          {
+            detail: {
+              summary: "Get scan result by job ID",
+              tags: ["Scans"],
+              security: [{ bearerAuth: [] }],
+            },
+          }
+        ),
+    {
+      detail: {
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+  .listen(8080);
+```
+
+**OpenAPI Documentation:**
+
+ElysiaJS automatically generates OpenAPI documentation from your route definitions. See [OpenAPI Patterns](https://elysiajs.com/patterns/openapi.html) for details:
+
+- **Swagger UI**: Available at `/openapi` (interactive documentation)
+- **OpenAPI JSON**: Available at `/openapi/json` (machine-readable spec)
+- **Zod Integration**: Use `zod-to-json-schema` for Zod schema conversion
+- **Route Descriptions**: Use `detail` field to add summaries, tags, and descriptions
+- **Security Schemes**: Configure Bearer JWT authentication in OpenAPI config
+
+**OpenTelemetry Observability:**
+
+ElysiaJS supports OpenTelemetry for distributed tracing and observability. See [OpenTelemetry Patterns](https://elysiajs.com/patterns/opentelemetry.html) for setup:
+
+- **Automatic Tracing**: Request/response tracing out of the box
+- **Custom Spans**: Add custom spans for business logic
+- **Exporters**: Configure exporters for Jaeger, Axiom, Datadog, etc.
+- **Performance Monitoring**: Track request latency, error rates, and throughput
+
+**Integration Points:**
+
+- Type-safe database operations with Drizzle's TypeScript-first API.
+- Runtime request/response validation using Zod schemas from `@safeurl/core`.
+- Validates all API inputs and outputs for type safety and security.
+- Functional error handling with neverthrow `Result<T, E>` types.
+- All failable operations return `Result` or `ResultAsync`, making errors explicit and type-safe.
+- Rate limiting per user/API key to prevent abuse.
+- Request logging and structured error responses.
+- CORS configuration for dashboard and API clients.
+
+**Development:**
+
+- Start development server: `bun dev` (auto-reloads on file changes)
+- Production build: `bun build`
+- Type checking: Built-in TypeScript support with ElysiaJS
+- API Documentation: Access Swagger UI at `http://localhost:8080/openapi`
+
+**Best Practices:**
+
+Following [ElysiaJS Best Practices](https://elysiajs.com/essential/best-practice.html):
+
+- **Feature-Based Structure**: Organize code by feature modules (scans, credits, webhooks)
+- **Separation of Concerns**: Controllers for routing, services for business logic, models for data
+- **Type Safety**: Leverage TypeScript inference and Zod schemas for end-to-end type safety
+- **Error Handling**: Use neverthrow `Result` types integrated with ElysiaJS error handlers
+- **Plugin Composition**: Build reusable plugins for common functionality (auth, validation, etc.)
+- **Route Grouping**: Use `.group()` and `.guard()` for organized route hierarchies
 
 ---
 
@@ -524,21 +765,202 @@ sequenceDiagram
 
 ### Tools
 
-- Docker
-- Tilt (live reload)
-- Turso local dev
-- Redis local container
-- Bun runtime (all services: API, worker, fetcher)
-- Mastra framework for agentic capabilities
-- Next.js dashboard (Bun runtime)
-- MCP server (Bun)
+- **Bun** (latest version) - Runtime for all services
+- **Docker Desktop** - Container orchestration and fetcher isolation
+- **Tilt** - Live reload and local development orchestration
+- **Turso CLI** - Local database development
+- **Redis** - Local queue instance (or Upstash for cloud)
+- **ElysiaJS** - API framework with excellent TypeScript support
+- **Mastra framework** - Agentic capabilities and LLM abstraction
+- **Next.js** - Dashboard framework (Bun runtime)
+- **Drizzle Kit** - Database migrations and schema management
+- **TypeScript** - Type-safe development across all services
 
 ### Local services via Tilt
 
-- localhost:8080 — API
-- localhost:3000 — Dashboard
-- localhost:6379 — Redis
-- turso file — local database
+- `localhost:8080` — API Service (ElysiaJS)
+- `localhost:3000` — Dashboard (Next.js)
+- `localhost:6379` — Redis (Queue)
+- `localhost:5432` — PostgreSQL (optional, for local Turso alternative)
+- Turso local file — Local database file
+
+### Environment Variables
+
+All services require environment configuration:
+
+- **API Service**: `DATABASE_URL`, `REDIS_URL`, `CLERK_SECRET_KEY`, `JWT_SECRET`
+- **Worker Service**: `DATABASE_URL`, `REDIS_URL`, `DOCKER_HOST`, `MASTRA_API_KEY`
+- **Fetcher Container**: `TARGET_URL`, `SCAN_JOB_ID`, `MASTRA_API_KEY`, `TIMEOUT_MS`
+- **Dashboard**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- **MCP Server**: `API_URL`, `API_KEY`
+
+### Development Workflow
+
+1. **Initial Setup**:
+
+   ```bash
+   # Install Bun (if not already installed)
+   curl -fsSL https://bun.sh/install | bash  # macOS/Linux
+   # or: powershell -c "irm bun.sh/install.ps1 | iex"  # Windows
+
+   # Install dependencies
+   bun install
+
+   # Setup database
+   bun run db:migrate
+
+   # Start all services via Tilt (with hot reloading)
+   bun run dev
+   ```
+
+2. **API Service Development (ElysiaJS)**:
+
+   ```bash
+   # Start API service with hot reloading
+   cd apps/api
+   bun dev  # Auto-reloads on file changes (ElysiaJS feature)
+
+   # Or from root:
+   bun run dev:api
+   ```
+
+3. **Service-Specific Development**:
+
+   ```bash
+   bun run dev:api      # API service only (ElysiaJS)
+   bun run dev:worker   # Worker service only
+   bun run dev:dashboard # Dashboard only
+   ```
+
+4. **Testing**:
+
+   ```bash
+   bun test              # Run all tests
+   bun test:unit         # Unit tests only
+   bun test:integration  # Integration tests
+   bun test:e2e          # End-to-end tests
+   ```
+
+5. **Database Migrations**:
+   ```bash
+   bun run db:generate   # Generate migration from schema changes
+   bun run db:migrate     # Apply migrations
+   bun run db:studio      # Open Drizzle Studio
+   ```
+
+**ElysiaJS Documentation References:**
+
+- **Quick Start**: [https://elysiajs.com/quick-start.html](https://elysiajs.com/quick-start.html)
+- **OpenAPI Patterns**: [https://elysiajs.com/patterns/openapi.html](https://elysiajs.com/patterns/openapi.html) - Automatic API documentation
+- **OpenTelemetry Patterns**: [https://elysiajs.com/patterns/opentelemetry.html](https://elysiajs.com/patterns/opentelemetry.html) - Observability and tracing
+- **Best Practices**: [https://elysiajs.com/essential/best-practice.html](https://elysiajs.com/essential/best-practice.html) - Code organization patterns
+
+Key ElysiaJS features used:
+
+- Route handlers with type inference
+- Zod schema validation (integrated with `@safeurl/core` schemas)
+- Plugin system for authentication, CORS, OpenAPI, OpenTelemetry
+- Lifecycle hooks for middleware
+- Error handling integration with neverthrow
+- Automatic OpenAPI documentation generation (Swagger UI at `/openapi`)
+- OpenTelemetry distributed tracing for production observability
+- Feature-based folder structure following best practices
+
+---
+
+## 10. API Documentation & Observability
+
+### OpenAPI Documentation
+
+SafeURL API automatically generates interactive API documentation using ElysiaJS's OpenAPI plugin. See [OpenAPI Patterns](https://elysiajs.com/patterns/openapi.html) for details.
+
+**Access Points:**
+
+- **Swagger UI**: `http://localhost:8080/openapi` (development)
+- **OpenAPI JSON**: `http://localhost:8080/openapi/json` (machine-readable spec)
+- **Production**: Available at `/openapi` endpoint (can be secured with authentication)
+
+**Features:**
+
+- **Automatic Generation**: Documentation generated from route definitions and Zod schemas
+- **Interactive Testing**: Test API endpoints directly from Swagger UI
+- **Type Safety**: OpenAPI schemas match TypeScript types automatically
+- **Security Schemes**: Bearer JWT authentication documented and testable
+- **Route Descriptions**: Detailed summaries, tags, and examples for each endpoint
+- **Response Examples**: Sample request/response payloads for all endpoints
+
+**Configuration:**
+
+```typescript
+import { openapi } from "@elysiajs/openapi";
+
+app.use(
+  openapi({
+    documentation: {
+      info: {
+        title: "SafeURL.ai API",
+        version: "1.0.0",
+        description: "AI-powered URL safety screening service",
+      },
+      tags: [
+        { name: "Scans", description: "URL scanning endpoints" },
+        { name: "Credits", description: "Credit management" },
+        { name: "Webhooks", description: "Webhook management" },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
+    },
+  })
+);
+```
+
+### OpenTelemetry Observability
+
+SafeURL uses OpenTelemetry for distributed tracing and observability. See [OpenTelemetry Patterns](https://elysiajs.com/patterns/opentelemetry.html) for setup details.
+
+**Features:**
+
+- **Automatic Tracing**: All HTTP requests/responses are automatically traced
+- **Custom Spans**: Add custom spans for business logic (scan processing, LLM calls, etc.)
+- **Distributed Tracing**: Track requests across services (API → Worker → Fetcher)
+- **Performance Metrics**: Request latency, error rates, throughput
+- **Exporters**: Support for Jaeger, Axiom, Datadog, Prometheus, etc.
+
+**Configuration:**
+
+```typescript
+import { opentelemetry } from "@elysiajs/opentelemetry";
+
+app.use(
+  opentelemetry({
+    serviceName: "safeurl-api",
+    serviceVersion: "1.0.0",
+    spanProcessors: [
+      // Configure exporters for your observability backend
+      new BatchSpanProcessor(
+        new OTLPTraceExporter({
+          url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        })
+      ),
+    ],
+  })
+);
+```
+
+**Production Monitoring:**
+
+- **Request Tracing**: Full request lifecycle tracking
+- **Error Tracking**: Automatic error capture and context
+- **Performance Monitoring**: P95/P99 latency tracking
+- **Service Dependencies**: Map service interactions
+- **Alerting**: Configure alerts for error rates, latency spikes, etc.
 
 ---
 
@@ -554,26 +976,90 @@ sequenceDiagram
 
 ---
 
-## 8. Future Extensions
+## 8. API Design & Endpoints
 
-- Batch scanning endpoints
-- Domain intelligence & aggregated risk scoring
-- Browser extension for real-time scanning
-- SIEM / SOC integrations
-- Attachment/file scanning
-- Custom fine-tuned LLM optimized for web threat detection
-- Queue partitioning for high-volume enterprise customers
+### Core Endpoints
+
+**Scan Management:**
+
+- `POST /v1/scans` - Create scan job
+  - Request: `{ url: string, metadata?: object }`
+  - Response: `{ jobId: string, status: "QUEUED", creditsDeducted: number }`
+- `GET /v1/scans/:id` - Get scan result
+  - Response: `{ jobId, status, result?, error?, createdAt, updatedAt }`
+- `GET /v1/scans` - List scans (paginated)
+  - Query params: `?page=1&limit=20&status=COMPLETED`
+  - Response: `{ scans: [], pagination: { page, limit, total } }`
+
+**Credit Management:**
+
+- `GET /v1/credits/balance` - Get current balance
+- `POST /v1/credits/purchase` - Purchase credits
+  - Request: `{ amount: number, paymentMethod: "crypto" }`
+- `GET /v1/credits/transactions` - Transaction history
+
+**Webhook Management:**
+
+- `GET /v1/webhooks` - List webhooks
+- `POST /v1/webhooks` - Create webhook
+  - Request: `{ url: string, events: ["scan.completed"] }`
+- `DELETE /v1/webhooks/:id` - Delete webhook
+
+**System:**
+
+- `GET /v1/health` - Health check
+- `GET /v1/metrics` - Prometheus metrics (optional)
+
+### Error Response Format
+
+All errors follow a consistent format:
+
+```json
+{
+  "error": {
+    "code": "INSUFFICIENT_CREDITS",
+    "message": "Insufficient credits to perform scan",
+    "details": { "required": 1, "available": 0 }
+  }
+}
+```
+
+### Authentication
+
+- **Bearer Token**: `Authorization: Bearer <jwt_token>` (Clerk JWT)
+- **API Key**: `X-API-Key: <api_key>` (for programmatic access)
+
+### Rate Limiting
+
+- Free tier: 100 requests/hour
+- Paid tier: 1000 requests/hour
+- Enterprise: Custom limits
 
 ---
 
-## 9. Proposed Repository Structure
+## 9. Future Extensions
+
+- Batch scanning endpoints (bulk URL processing)
+- Domain intelligence & aggregated risk scoring
+- Browser extension for real-time scanning
+- SIEM / SOC integrations (Splunk, Datadog, etc.)
+- Attachment/file scanning (email attachments, downloads)
+- Custom fine-tuned LLM optimized for web threat detection
+- Queue partitioning for high-volume enterprise customers
+- Real-time WebSocket updates for scan progress
+- Custom risk scoring models per organization
+- Integration marketplace (Zapier, n8n, etc.)
+
+---
+
+## 10. Proposed Repository Structure
 
 Bun monorepo with `apps/` and `packages/` workspaces:
 
 ```
 safeurl/
 ├── apps/
-│   ├── api/              # Bun HTTP API (TypeScript)
+│   ├── api/              # ElysiaJS API (Bun + TypeScript)
 │   ├── worker/           # Bun worker + BullMQ (TypeScript)
 │   ├── fetcher/          # Ephemeral fetcher (Bun + TypeScript + Mastra)
 │   ├── dashboard/        # Next.js + Clerk (Bun runtime)

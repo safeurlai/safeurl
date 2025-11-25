@@ -22,11 +22,13 @@ Set up Docker configurations, Tilt for local development, and optional Kubernete
   - [ ] Use official Bun image
   - [ ] Set up working directory
   - [ ] Copy package files
+  - [ ] Install ElysiaJS dependencies
 - [ ] **Production Optimizations**:
   - [ ] Minimize image size
   - [ ] Set up non-root user
-  - [ ] Configure health checks
+  - [ ] Configure health checks (`GET /v1/health`)
   - [ ] Set resource limits
+  - [ ] Expose port 8080
 
 ### Worker Dockerfile
 
@@ -163,10 +165,14 @@ Set up Docker configurations, Tilt for local development, and optional Kubernete
 - [ ] **ConfigMaps**:
   - [ ] Application configuration
   - [ ] Non-sensitive settings
+  - [ ] OpenAPI documentation settings
+  - [ ] OpenTelemetry exporter configuration (endpoint, service name)
 - [ ] **Secrets**:
   - [ ] API keys
   - [ ] Database credentials
   - [ ] LLM provider keys
+  - [ ] Clerk JWT secrets
+  - [ ] OpenTelemetry exporter authentication (if needed)
   - [ ] Use Kubernetes secrets or external secret manager
 
 ### Horizontal Pod Autoscaling

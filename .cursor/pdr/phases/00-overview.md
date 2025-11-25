@@ -17,7 +17,7 @@ Each phase document contains:
 2. **[Phase 2: Core Package Implementation](./02-core-package.md)** - Zod schemas, Result utilities, audit logging
 3. **[Phase 3: Database Schema & Migrations](./03-database.md)** - Drizzle setup, tables, indexes
 4. **[Phase 4: Mastra Integration](./04-mastra.md)** - Agents, tools, LLM configuration
-5. **[Phase 5: API Service](./05-api-service.md)** - HTTP endpoints, authentication, validation
+5. **[Phase 5: API Service](./05-api-service.md)** - ElysiaJS API with OpenAPI docs, OpenTelemetry, authentication, validation
 6. **[Phase 6: Worker Service](./06-worker-service.md)** - Queue processing, state machine, container management
 7. **[Phase 7: Fetcher Container](./07-fetcher.md)** - URL fetching, analysis, audit logging
 8. **[Phase 8: Dashboard](./08-dashboard.md)** - Next.js UI, real-time updates
