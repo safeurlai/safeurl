@@ -20,7 +20,7 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 
 - Open-source with IP-protective license (recommended: BSL).
 - OAuth2/OIDC authentication via Clerk.
-- Primary DB: Turso (libSQL) for global low-latency access.
+- Primary DB: Turso (libSQL) with Drizzle ORM for type-safe, schema-driven access.
 - Queue: Redis using BullMQ (Bun-compatible).
 - All services implemented in TypeScript/Bun (API, workers, fetcher).
 - Dashboard + MCP server in TypeScript/Bun.
@@ -46,7 +46,7 @@ flowchart TD
         B3["Credits API"]
     end
 
-    subgraph DB["Turso Database"]
+    subgraph DB["Turso Database (Drizzle ORM)"]
         C1["Users"]
         C2["Wallets (Credits)"]
         C3["Scan Jobs"]
@@ -97,14 +97,15 @@ flowchart TD
 * GET /v1/scans/:id
 * credit balance endpoints
 * webhook management
-  - Writes job rows to Turso.
+  - Writes job rows to Turso via Drizzle ORM.
   - Pushes queued tasks into Redis (BullMQ).
   - Stateless, horizontally scalable.
   - Built with Bun's native HTTP server for high performance.
+  - Type-safe database operations with Drizzle's TypeScript-first API.
 
 ---
 
-### 3.2 Turso Database (libSQL)
+### 3.2 Turso Database (libSQL + Drizzle ORM)
 
 **Stores durable state:**
 
@@ -119,7 +120,16 @@ flowchart TD
 * content_hash
 * http status, headers, etc.
 
-All transitions use optimistic concurrency to preserve state integrity.
+**Database Layer:**
+
+- Drizzle ORM for type-safe, schema-driven database access
+- Schema migrations managed via Drizzle Kit
+- Full TypeScript type inference for queries and results
+- Optimistic concurrency control via Drizzle transactions
+- libSQL driver for Turso compatibility
+- Global low-latency access via Turso's edge replication
+
+All state transitions use Drizzle transactions with optimistic concurrency to preserve state integrity.
 
 ---
 
@@ -143,7 +153,7 @@ All transitions use optimistic concurrency to preserve state integrity.
 **Key functions:**
 
 - Dequeues tasks from Redis (BullMQ).
-- Claims scan job from Turso.
+- Claims scan job from Turso via Drizzle ORM.
 - Performs state transitions:
 
 * QUEUED → FETCHING
@@ -151,7 +161,7 @@ All transitions use optimistic concurrency to preserve state integrity.
 * ANALYZING → COMPLETED
   - Spawns ephemeral fetcher containers using Docker SDK (via `dockerode` or Bun-native Docker API).
   - Collects fetcher results & LLM output.
-  - Stores metadata in Turso.
+  - Stores metadata in Turso using Drizzle ORM with type safety.
   - Leverages Bun's fast runtime and native async capabilities.
 
 ---
@@ -247,7 +257,7 @@ stateDiagram-v2
 
 - Only valid transitions allowed.
 - Prevents concurrency races between workers.
-- Each step is updated atomically via Turso.
+- Each step is updated atomically via Drizzle transactions in Turso.
 
 ---
 
@@ -333,7 +343,7 @@ safeurl/
 ├── fetcher/          # Ephemeral fetcher (Bun + TypeScript)
 ├── dashboard/        # Next.js + Clerk (Bun runtime)
 ├── mcp-server/       # Bun MCP server (TypeScript)
-├── db/               # Turso schema + migrations
+├── db/               # Drizzle schema + migrations (Turso/libSQL)
 ├── infra/
 │   ├── docker/
 │   ├── tilt/
