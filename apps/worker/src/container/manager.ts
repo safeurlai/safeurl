@@ -70,7 +70,7 @@ export async function spawnFetcherContainer(
     // Create container configuration
     const containerConfig: Docker.ContainerCreateOptions = {
       Image: fetcherImage,
-      Env: [`JOB_ID=${jobId}`, `URL=${url}`],
+      Env: [`JOB_ID=${jobId}`, `SCAN_URL=${url}`],
       HostConfig: {
         Memory: memoryLimitMB * 1024 * 1024, // Convert MB to bytes
         CpuQuota: Math.floor(cpuLimit * 100000), // CPU quota in microseconds
