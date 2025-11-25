@@ -33,7 +33,7 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 ## 2. High-Level Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph CLIENT["Client Applications"]
         A1["Dashboard (React)"]
         A2["MCP Server"]
@@ -75,7 +75,7 @@ flowchart LR
     API -->|Enqueue job_id| QUEUE
     QUEUE --> WORKER
     WORKER --> FETCHER
-    FETCHER --> WORKER
+    FETCHER -->|Return metadata| WORKER
     WORKER -->|Store metadata| DB
     CLIENT -->|Query result| API
 ```
