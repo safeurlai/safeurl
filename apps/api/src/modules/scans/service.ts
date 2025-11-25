@@ -1,5 +1,5 @@
-import { Result, ResultAsync, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery, type DatabaseError } from "@safeurl/core/result";
+import { Result, ok, err } from "@safeurl/core/result";
+import { wrapDbQuery } from "@safeurl/core/result";
 import {
   db,
   scanJobs,
