@@ -61,20 +61,22 @@ flowchart TD
         E1["Dequeue Task"]
         E2["State Machine"]
         E3["Spawn Fetcher Container"]
-        E4["LLM Analysis"]
+        E4["Collect Results"]
     end
 
     subgraph FETCHER["Ephemeral Fetcher (Container)"]
         F1["HTTP Fetch"]
         F2["Screenshot / DOM Parsing"]
-        F3["LLM Adapter"]
+        F3["LLM Analysis"]
     end
 
     CLIENT -->|JWT / API Key| API
     API -->|Insert Job| DB
+    API -->|Read/Write Credits| DB
     API -->|Enqueue job_id| QUEUE
+    API -->|Query results| DB
     QUEUE --> WORKER
-    WORKER --> FETCHER
+    WORKER -->|Launch container| FETCHER
     FETCHER -->|Return metadata| WORKER
     WORKER -->|Store metadata| DB
     CLIENT -->|Query result| API
@@ -257,8 +259,11 @@ sequenceDiagram
     W->>F: Launch ephemeral container
     F->>F: Fetch URL + LLM analysis
     F->>W: Return metadata
+    W->>DB: Update state→ANALYZING
     W->>DB: Store metadata, state→COMPLETED
     C->>API: GET /v1/scans/{id}
+    API->>DB: Query job result
+    API->>C: Return scan result
 ```
 
 ⸻
