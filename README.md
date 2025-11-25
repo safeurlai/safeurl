@@ -387,26 +387,36 @@ sequenceDiagram
 
 ## 9. Proposed Repository Structure
 
+Bun monorepo with `apps/` and `packages/` workspaces:
+
 ```
 safeurl/
-├── api/              # Bun HTTP API (TypeScript)
-├── worker/           # Bun worker + BullMQ (TypeScript)
-├── fetcher/          # Ephemeral fetcher (Bun + TypeScript + Mastra)
-├── dashboard/        # Next.js + Clerk (Bun runtime)
-├── mcp-server/       # Bun MCP server (TypeScript)
-├── db/               # Drizzle schema + migrations (Turso/libSQL)
-├── mastra/           # Mastra agents, tools, and workflows
-│   ├── agents/
-│   │   └── url-safety-agent.ts
-│   ├── tools/
-│   │   ├── content-extraction.ts
-│   │   ├── screenshot-analysis.ts
-│   │   └── reputation-check.ts
-│   └── index.ts
+├── apps/
+│   ├── api/              # Bun HTTP API (TypeScript)
+│   ├── worker/           # Bun worker + BullMQ (TypeScript)
+│   ├── fetcher/          # Ephemeral fetcher (Bun + TypeScript + Mastra)
+│   ├── dashboard/        # Next.js + Clerk (Bun runtime)
+│   └── mcp-server/       # Bun MCP server (TypeScript)
+├── packages/
+│   ├── db/               # Drizzle schema + migrations (Turso/libSQL)
+│   ├── mastra/           # Mastra agents, tools, and workflows
+│   │   ├── agents/
+│   │   │   └── url-safety-agent.ts
+│   │   ├── tools/
+│   │   │   ├── content-extraction.ts
+│   │   │   ├── screenshot-analysis.ts
+│   │   │   └── reputation-check.ts
+│   │   └── index.ts
+│   └── shared/           # Shared types, utils, configs
+│       ├── types/
+│       ├── utils/
+│       └── config/
 ├── infra/
 │   ├── docker/
 │   ├── tilt/
 │   └── k8s/
-└── docs/
-    └── safeurl_architecture.md
+├── docs/
+│   └── safeurl_architecture.md
+├── package.json          # Root workspace config
+└── bun.lockb            # Bun lockfile
 ```
