@@ -1,0 +1,406 @@
+import { Result, ok, err } from "@safeurl/core/result";
+import { wrapDbQuery } from "@safeurl/core/result";
+import { db, scanJobs } from "@safeurl/db";
+import { eq, and } from "drizzle-orm";
+import { validateStateTransition } from "@safeurl/core/schemas";
+import type { ScanJobState } from "@safeurl/core/schemas";
+
+/**
+ * State transition error types
+ */
+export interface StateTransitionError {
+  type: "invalid_transition" | "version_conflict" | "not_found" | "database_error";
+  message: string;
+  details?: unknown;
+}
+
+/**
+ * Transition job from QUEUED to FETCHING
+ * Uses optimistic locking with version field
+ */
+export async function transitionToFetching(
+  jobId: string,
+  expectedVersion: number
+): Promise<Result<void, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    // Validate state transition
+    const validation = validateStateTransition(job.state, "FETCHING");
+    if (!validation.valid) {
+      return err({
+        type: "invalid_transition",
+        message: validation.error || "Invalid state transition",
+        details: {
+          currentState: job.state,
+          targetState: "FETCHING",
+        },
+      });
+    }
+
+    // Check version for optimistic locking
+    if (job.version !== expectedVersion) {
+      return err({
+        type: "version_conflict",
+        message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
+        details: {
+          expected: expectedVersion,
+          actual: job.version,
+        },
+      });
+    }
+
+    // Perform state transition atomically
+    await db
+      .update(scanJobs)
+      .set({
+        state: "FETCHING",
+        version: job.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+
+    return ok(undefined);
+  }).andThen((result) => {
+    if (result.isErr()) {
+      // Check if it's a database error or our custom error
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      // Return the custom error as-is
+      return err(result.error as StateTransitionError);
+    }
+    return ok(undefined);
+  });
+}
+
+/**
+ * Transition job from FETCHING to ANALYZING
+ */
+export async function transitionToAnalyzing(
+  jobId: string,
+  expectedVersion: number
+): Promise<Result<void, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    const validation = validateStateTransition(job.state, "ANALYZING");
+    if (!validation.valid) {
+      return err({
+        type: "invalid_transition",
+        message: validation.error || "Invalid state transition",
+        details: {
+          currentState: job.state,
+          targetState: "ANALYZING",
+        },
+      });
+    }
+
+    if (job.version !== expectedVersion) {
+      return err({
+        type: "version_conflict",
+        message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
+        details: {
+          expected: expectedVersion,
+          actual: job.version,
+        },
+      });
+    }
+
+    await db
+      .update(scanJobs)
+      .set({
+        state: "ANALYZING",
+        version: job.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+
+    return ok(undefined);
+  }).andThen((result) => {
+    if (result.isErr()) {
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      return err(result.error as StateTransitionError);
+    }
+    return ok(undefined);
+  });
+}
+
+/**
+ * Transition job from ANALYZING to COMPLETED
+ */
+export async function transitionToCompleted(
+  jobId: string,
+  expectedVersion: number
+): Promise<Result<void, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    const validation = validateStateTransition(job.state, "COMPLETED");
+    if (!validation.valid) {
+      return err({
+        type: "invalid_transition",
+        message: validation.error || "Invalid state transition",
+        details: {
+          currentState: job.state,
+          targetState: "COMPLETED",
+        },
+      });
+    }
+
+    if (job.version !== expectedVersion) {
+      return err({
+        type: "version_conflict",
+        message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
+        details: {
+          expected: expectedVersion,
+          actual: job.version,
+        },
+      });
+    }
+
+    await db
+      .update(scanJobs)
+      .set({
+        state: "COMPLETED",
+        version: job.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+
+    return ok(undefined);
+  }).andThen((result) => {
+    if (result.isErr()) {
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      return err(result.error as StateTransitionError);
+    }
+    return ok(undefined);
+  });
+}
+
+/**
+ * Transition job to FAILED state
+ * Can transition from any state to FAILED
+ */
+export async function transitionToFailed(
+  jobId: string,
+  expectedVersion: number
+): Promise<Result<void, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    // FAILED is a terminal state, can transition from any state
+    // But we still validate it's not already in a terminal state
+    if (job.state === "COMPLETED" || job.state === "FAILED" || job.state === "TIMED_OUT") {
+      return err({
+        type: "invalid_transition",
+        message: `Cannot transition from terminal state ${job.state} to FAILED`,
+        details: {
+          currentState: job.state,
+          targetState: "FAILED",
+        },
+      });
+    }
+
+    if (job.version !== expectedVersion) {
+      return err({
+        type: "version_conflict",
+        message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
+        details: {
+          expected: expectedVersion,
+          actual: job.version,
+        },
+      });
+    }
+
+    await db
+      .update(scanJobs)
+      .set({
+        state: "FAILED",
+        version: job.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+
+    return ok(undefined);
+  }).andThen((result) => {
+    if (result.isErr()) {
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      return err(result.error as StateTransitionError);
+    }
+    return ok(undefined);
+  });
+}
+
+/**
+ * Transition job to TIMED_OUT state
+ * Can transition from FETCHING or ANALYZING
+ */
+export async function transitionToTimedOut(
+  jobId: string,
+  expectedVersion: number
+): Promise<Result<void, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    const validation = validateStateTransition(job.state, "TIMED_OUT");
+    if (!validation.valid) {
+      return err({
+        type: "invalid_transition",
+        message: validation.error || "Invalid state transition",
+        details: {
+          currentState: job.state,
+          targetState: "TIMED_OUT",
+        },
+      });
+    }
+
+    if (job.version !== expectedVersion) {
+      return err({
+        type: "version_conflict",
+        message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
+        details: {
+          expected: expectedVersion,
+          actual: job.version,
+        },
+      });
+    }
+
+    await db
+      .update(scanJobs)
+      .set({
+        state: "TIMED_OUT",
+        version: job.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+
+    return ok(undefined);
+  }).andThen((result) => {
+    if (result.isErr()) {
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      return err(result.error as StateTransitionError);
+    }
+    return ok(undefined);
+  });
+}
+
+/**
+ * Get job by ID with current version
+ */
+export async function getJobWithVersion(
+  jobId: string
+): Promise<Result<{ job: typeof scanJobs.$inferSelect; version: number }, StateTransitionError>> {
+  return wrapDbQuery(async () => {
+    const [job] = await db
+      .select()
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (!job) {
+      return err({
+        type: "not_found",
+        message: `Scan job ${jobId} not found`,
+      });
+    }
+
+    return ok({ job, version: job.version });
+  }).andThen((result) => {
+    if (result.isErr()) {
+      if (result.error.type === "query" || result.error.type === "connection") {
+        return err({
+          type: "database_error",
+          message: result.error.message,
+          details: result.error,
+        });
+      }
+      return err(result.error as StateTransitionError);
+    }
+    return ok(result.value);
+  });
+}
+

@@ -20,3 +20,19 @@ docker_build('safeurl/api', '.',
     restart_container(),
   ])
 
+# Configure Worker service with live updates
+docker_build('safeurl/worker', '.',
+  dockerfile = './apps/worker/Dockerfile',
+  live_update = [
+    sync('./apps/worker/src', '/app/apps/worker/src'),
+    sync('./packages/core/src', '/app/packages/core/src'),
+    sync('./packages/db/src', '/app/packages/db/src'),
+    sync('./packages/mastra/src', '/app/packages/mastra/src'),
+    run('bun install', trigger='package.json'),
+    run('bun install', trigger='apps/worker/package.json'),
+    run('bun install', trigger='packages/core/package.json'),
+    run('bun install', trigger='packages/db/package.json'),
+    run('bun install', trigger='packages/mastra/package.json'),
+    restart_container(),
+  ])
+

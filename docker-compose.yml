@@ -38,7 +38,35 @@ services:
       retries: 5
       start_period: 10s
 
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    image: safeurl/worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=file:./data/local.db
+      - DOCKER_SOCKET_PATH=/var/run/docker.sock
+      - FETCHER_IMAGE=safeurl-fetcher:latest
+      - WORKER_CONCURRENCY=5
+      - CONTAINER_TIMEOUT_MS=30000
+      - CONTAINER_MEMORY_LIMIT_MB=512
+      - CONTAINER_CPU_LIMIT=0.5
+      - NODE_ENV=production
+    volumes:
+      - worker-db:/app/apps/worker/data
+      # Mount Docker socket so worker can spawn containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   redis-data:
   api-db:
+  worker-db:
 
