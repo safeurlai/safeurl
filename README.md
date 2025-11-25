@@ -24,7 +24,8 @@ It evaluates URLs using ephemeral containers, LLM analysis, and a Redis-backed j
 - Queue: Redis using BullMQ (Bun-compatible).
 - All services implemented in TypeScript/Bun (API, workers, fetcher).
 - Dashboard + MCP server in TypeScript/Bun.
-- Pluggable LLM providers (OpenAI, DeepSeek, Kami, OSS models).
+- Mastra framework for agentic capabilities and LLM provider abstraction.
+- Pluggable LLM providers via Mastra (OpenAI, Anthropic, Google, DeepSeek, Kami, Ollama, and 600+ models).
 - Crypto payments + credit-based billing.
 - Local development using Docker + Tilt.
 
@@ -67,7 +68,7 @@ flowchart TD
     subgraph FETCHER["Ephemeral Fetcher (Container)"]
         F1["HTTP Fetch"]
         F2["Screenshot / DOM Parsing"]
-        F3["LLM Analysis"]
+        F3["Mastra Agent Analysis"]
     end
 
     CLIENT -->|JWT / API Key| API
@@ -148,7 +149,7 @@ All state transitions use Drizzle transactions with optimistic concurrency to pr
 
 ---
 
-### 3.4 Worker Service (Bun + TypeScript)
+### 3.4 Worker Service (Bun + TypeScript + Mastra)
 
 **Key functions:**
 
@@ -160,13 +161,14 @@ All state transitions use Drizzle transactions with optimistic concurrency to pr
 * FETCHING → ANALYZING
 * ANALYZING → COMPLETED
   - Spawns ephemeral fetcher containers using Docker SDK (via `dockerode` or Bun-native Docker API).
-  - Collects fetcher results & LLM output.
+  - Collects fetcher results & Mastra agent analysis output.
   - Stores metadata in Turso using Drizzle ORM with type safety.
   - Leverages Bun's fast runtime and native async capabilities.
+  - Uses Mastra for agent orchestration and LLM provider management.
 
 ---
 
-### 3.5 Ephemeral Fetcher Container (Bun + TypeScript)
+### 3.5 Ephemeral Fetcher Container (Bun + TypeScript + Mastra)
 
 Launched per scan.
 
@@ -175,7 +177,8 @@ Launched per scan.
 - Strict-timeout URL fetcher (using Bun's native fetch)
 - SSRF-safe networking
 - Optional screenshot or rendered DOM extraction (via Puppeteer/Playwright)
-- LLM provider call via adapters
+- Mastra agent for URL safety analysis with structured output
+- Mastra tools for content extraction and threat detection
 - Output returned via:
 
 * stdout JSON, or
@@ -183,28 +186,75 @@ Launched per scan.
 
 Container always runs as `--rm`, leaving no state behind.
 Built with Bun for fast startup and execution.
+Uses Mastra agents for intelligent, multi-step URL analysis with tool calling capabilities.
 
 ---
 
-### 3.6 LLM Provider Adapter Layer
+### 3.6 Mastra Agent Framework
 
-**Unified interface:**
+**Agent-based URL Analysis:**
 
-```typescript
-interface AIClient {
-  analyzeURL(ctx: Context, fetch: FetchResult): Promise<AnalysisResult>;
-}
-```
+Mastra provides a unified framework for agentic URL safety analysis with support for 600+ LLM models across multiple providers.
 
-**Providers:**
+**Core Components:**
 
-- OpenAI (Vision)
+- **URL Safety Agent**: Mastra agent configured with specialized instructions for threat detection
+- **Structured Output**: Zod schemas for consistent risk scoring and categorization
+- **Tool Integration**: Mastra tools for content extraction, screenshot analysis, and threat pattern detection
+- **Multi-step Reasoning**: Agent can perform iterative analysis with tool calling
+- **Provider Abstraction**: Seamless switching between LLM providers
+
+**Supported Providers (via Mastra):**
+
+- OpenAI (GPT-4o, GPT-4 Vision, GPT-4o-mini)
+- Anthropic (Claude Sonnet, Claude Opus)
+- Google (Gemini Pro, Gemini Flash)
 - DeepSeek
 - Kami
-- Ollama (local)
-- Custom threat-model fine-tuned LLMs
+- Ollama (local models)
+- Custom fine-tuned models via Mastra's provider abstraction
 
-All adapters implemented in TypeScript, leveraging Bun's native fetch and Web APIs.
+**Example Agent Configuration:**
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+export const urlSafetyAgent = new Agent({
+  name: "url-safety-agent",
+  instructions: `
+    You are an expert URL safety analyst. Analyze URLs for:
+    - Phishing attempts
+    - Malware distribution
+    - Scam patterns
+    - Suspicious redirects
+    - Content safety
+  `,
+  model: openai("gpt-4o"),
+  tools: {
+    extractContent: contentExtractionTool,
+    analyzeScreenshot: screenshotAnalysisTool,
+    checkReputation: reputationCheckTool,
+  },
+});
+```
+
+**Structured Analysis Output:**
+
+```typescript
+const analysisSchema = z.object({
+  riskScore: z.number().min(0).max(100),
+  categories: z.array(
+    z.enum(["phishing", "malware", "scam", "suspicious", "safe"])
+  ),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+  indicators: z.array(z.string()),
+});
+```
+
+All agent interactions leverage Mastra's streaming, memory, and observability features for production-grade reliability.
 
 ---
 
@@ -278,7 +328,7 @@ sequenceDiagram
     Q->>W: Dequeue job_id
     W->>DB: Update state→FETCHING
     W->>F: Launch ephemeral container
-    F->>F: Fetch URL + LLM analysis
+    F->>F: Fetch URL + Mastra agent analysis
     F->>W: Return metadata
     W->>DB: Update state→ANALYZING
     W->>DB: Store metadata, state→COMPLETED
@@ -298,6 +348,7 @@ sequenceDiagram
 - Turso local dev
 - Redis local container
 - Bun runtime (all services: API, worker, fetcher)
+- Mastra framework for agentic capabilities
 - Next.js dashboard (Bun runtime)
 - MCP server (Bun)
 
@@ -340,10 +391,18 @@ sequenceDiagram
 safeurl/
 ├── api/              # Bun HTTP API (TypeScript)
 ├── worker/           # Bun worker + BullMQ (TypeScript)
-├── fetcher/          # Ephemeral fetcher (Bun + TypeScript)
+├── fetcher/          # Ephemeral fetcher (Bun + TypeScript + Mastra)
 ├── dashboard/        # Next.js + Clerk (Bun runtime)
 ├── mcp-server/       # Bun MCP server (TypeScript)
 ├── db/               # Drizzle schema + migrations (Turso/libSQL)
+├── mastra/           # Mastra agents, tools, and workflows
+│   ├── agents/
+│   │   └── url-safety-agent.ts
+│   ├── tools/
+│   │   ├── content-extraction.ts
+│   │   ├── screenshot-analysis.ts
+│   │   └── reputation-check.ts
+│   └── index.ts
 ├── infra/
 │   ├── docker/
 │   ├── tilt/
