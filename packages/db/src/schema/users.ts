@@ -11,19 +11,19 @@ export const users = sqliteTable(
     clerkUserId: text("clerk_user_id").primaryKey().notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`),
+      .default(sql`(strftime('%s', 'now'))`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`)
+      .default(sql`(strftime('%s', 'now'))`)
       .$onUpdate(() => new Date()),
     metadata: text("metadata", { mode: "json" }).$type<
       Record<string, unknown>
     >(),
   },
-  (table) => ({
+  (table) => [
     // Index on createdAt for time-based queries (user registration analytics)
-    createdAtIdx: index("users_created_at_idx").on(table.createdAt),
-  })
+    index("users_created_at_idx").on(table.createdAt),
+  ]
 );
 
 export type User = typeof users.$inferSelect;

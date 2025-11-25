@@ -2,56 +2,93 @@ import { Elysia } from "elysia";
 import {
   purchaseCreditsRequestSchema,
   creditBalanceResponseSchema,
+  errorResponseSchema,
+  purchaseCreditsResponseSchema,
 } from "./schemas";
 import { getCreditBalance, purchaseCredits } from "./service";
-import { authPlugin } from "../../plugins/auth";
 
 /**
  * Credits module routes
  */
+const DEFAULT_USER_ID = "user_anonymous"; // Default user ID when auth is disabled
+
 export const creditsModule = new Elysia({ prefix: "/credits" })
-  .use(authPlugin)
   .get(
     "/",
-    async ({ user, set }) => {
-      const result = await getCreditBalance(user.clerkUserId);
+    async ({ set }) => {
+      console.log(`[GET /v1/credits] Request received`);
 
-      if (result.isErr()) {
+      try {
+        const result = await getCreditBalance(DEFAULT_USER_ID);
+
+        if (result.isErr()) {
+          console.error(`[GET /v1/credits] Error:`, result.error);
+          set.status = 500;
+          return {
+            error: {
+              code: result.error.code,
+              message: result.error.message,
+              details:
+                result.error.details &&
+                typeof result.error.details === "object" &&
+                !Array.isArray(result.error.details)
+                  ? (result.error.details as Record<string, unknown>)
+                  : undefined,
+            },
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        const balance = result.value;
+        console.log(
+          `[GET /v1/credits] Success, returning balance: ${balance.balance}`
+        );
+        return {
+          balance: balance.balance,
+          userId: DEFAULT_USER_ID,
+          updatedAt: balance.updatedAt.toISOString(),
+        };
+      } catch (error) {
+        console.error(`[GET /v1/credits] Unexpected error:`, error);
         set.status = 500;
         return {
           error: {
-            code: result.error.code,
-            message: result.error.message,
-            details: result.error.details,
+            code: "internal_error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "An unexpected error occurred",
+            details:
+              error && typeof error === "object" && !Array.isArray(error)
+                ? (error as Record<string, unknown>)
+                : undefined,
           },
+          timestamp: new Date().toISOString(),
         };
       }
-
-      const balance = result.value;
-      return {
-        balance: balance.balance,
-        userId: user.clerkUserId,
-        updatedAt: balance.updatedAt.toISOString(),
-      };
     },
     {
       detail: {
         summary: "Get credit balance",
-        description: "Retrieves the current credit balance for the authenticated user",
+        description: "Retrieves the current credit balance for the user",
         tags: ["Credits"],
-        security: [{ BearerAuth: [] }],
       },
-      response: creditBalanceResponseSchema,
+      response: {
+        200: creditBalanceResponseSchema,
+        500: errorResponseSchema,
+      },
     }
   )
   .post(
     "/purchase",
-    async ({ body, user, set }) => {
-      const result = await purchaseCredits(user.clerkUserId, body);
+    async ({ body, set }) => {
+      console.log(`[POST /v1/credits/purchase] Request received`);
+
+      const result = await purchaseCredits(DEFAULT_USER_ID, body);
 
       if (result.isErr()) {
         const error = result.error;
-        
+
         if (error.code === "unsupported_payment_method") {
           set.status = 400;
         } else if (error.code === "payment_error") {
@@ -64,8 +101,14 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
           error: {
             code: error.code,
             message: error.message,
-            details: error.details,
+            details:
+              error.details &&
+              typeof error.details === "object" &&
+              !Array.isArray(error.details)
+                ? (error.details as Record<string, unknown>)
+                : undefined,
           },
+          timestamp: new Date().toISOString(),
         };
       }
 
@@ -73,7 +116,7 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
       set.status = 201;
       return {
         id: purchase.transactionId,
-        userId: user.clerkUserId,
+        userId: DEFAULT_USER_ID,
         amount: body.amount,
         paymentMethod: body.paymentMethod,
         status: "completed",
@@ -86,10 +129,15 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
       body: purchaseCreditsRequestSchema,
       detail: {
         summary: "Purchase credits",
-        description: "Purchase credits using crypto or other payment methods. This is a stub implementation.",
+        description:
+          "Purchase credits using crypto or other payment methods. This is a stub implementation.",
         tags: ["Credits"],
-        security: [{ BearerAuth: [] }],
+      },
+      response: {
+        201: purchaseCreditsResponseSchema,
+        400: errorResponseSchema,
+        402: errorResponseSchema,
+        500: errorResponseSchema,
       },
     }
   );
-

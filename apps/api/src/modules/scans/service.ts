@@ -1,9 +1,48 @@
 import { Result, ResultAsync, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery } from "@safeurl/core/result";
-import { db, scanJobs, wallets, scanResults } from "@safeurl/db";
-import { eq } from "drizzle-orm";
+import { wrapDbQuery, type DatabaseError } from "@safeurl/core/result";
+import {
+  db,
+  scanJobs,
+  wallets,
+  scanResults,
+  users,
+  executeRawSQL,
+} from "@safeurl/db";
+import { eq, sql } from "drizzle-orm";
 import { scanQueue } from "../../lib/queue";
 import type { CreateScanRequest } from "./schemas";
+
+/**
+ * Ensure user exists in database
+ * Uses INSERT OR IGNORE for atomic user creation
+ */
+async function ensureUserExists(userId: string): Promise<void> {
+  try {
+    // Try to insert user, ignore if already exists (SQLite specific)
+    await executeRawSQL(
+      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`
+    );
+  } catch (error) {
+    // If INSERT OR IGNORE fails, try regular insert (for non-SQLite databases)
+    try {
+      await db.insert(users).values({
+        clerkUserId: userId,
+      });
+    } catch (insertError) {
+      // User might already exist, verify by selecting
+      const existing = await db
+        .select()
+        .from(users)
+        .where(eq(users.clerkUserId, userId))
+        .limit(1);
+      if (existing.length === 0) {
+        // User doesn't exist and insert failed, re-throw
+        throw insertError;
+      }
+      // User exists now, continue
+    }
+  }
+}
 
 /**
  * Service errors
@@ -16,46 +55,93 @@ interface ServiceError {
 
 /**
  * Check if user has sufficient credits
+ * Creates user and wallet if they don't exist
  */
 async function checkCredits(
   userId: string,
   requiredCredits: number = 1
 ): Promise<Result<{ balance: number }, ServiceError>> {
-  return wrapDbQuery(async () => {
-    const userWallet = await db
+  const resultAsync = wrapDbQuery(async () => {
+    // Ensure user exists
+    await ensureUserExists(userId);
+
+    // Check if wallet exists, create if it doesn't
+    let userWallet = await db
       .select()
       .from(wallets)
       .where(eq(wallets.userId, userId))
       .limit(1);
 
+    let wallet;
     if (userWallet.length === 0) {
-      return err({
-        code: "wallet_not_found",
-        message: "User wallet not found",
-      });
+      // Create wallet with 0 credits if it doesn't exist
+      // Handle race condition: if another request creates the wallet between check and insert
+      try {
+        const [newWallet] = await db
+          .insert(wallets)
+          .values({
+            userId,
+            creditBalance: 0,
+          })
+          .returning();
+        wallet = newWallet;
+      } catch (error: unknown) {
+        // If insert fails (e.g., unique constraint), wallet was created by another request
+        // Re-check to get the wallet
+        userWallet = await db
+          .select()
+          .from(wallets)
+          .where(eq(wallets.userId, userId))
+          .limit(1);
+        if (userWallet.length === 0) {
+          // If still not found, re-throw the error
+          throw error;
+        }
+        wallet = userWallet[0];
+      }
+    } else {
+      wallet = userWallet[0];
     }
 
-    const wallet = userWallet[0];
     if (wallet.creditBalance < requiredCredits) {
-      return err({
-        code: "insufficient_credits",
-        message: `Insufficient credits. Required: ${requiredCredits}, Available: ${wallet.creditBalance}`,
-        details: {
-          required: requiredCredits,
-          available: wallet.creditBalance,
-        },
-      });
-    }
-
-    return ok({ balance: wallet.creditBalance });
-  }).andThen((result) => {
-    if (result.isErr()) {
-      return ResultAsync.fromSafePromise(
-        Promise.resolve(err(result.error))
+      throw new Error(
+        `Insufficient credits. Required: ${requiredCredits}, Available: ${wallet.creditBalance}`
       );
     }
-    return ResultAsync.fromSafePromise(Promise.resolve(result));
+
+    return { balance: wallet.creditBalance };
   });
+
+  // Await the ResultAsync and convert DatabaseError to ServiceError
+  const result = await resultAsync;
+
+  if (result.isErr()) {
+    const dbError = result.error;
+    const errorMessage = dbError.message || "Database error occurred";
+
+    // Check if it's an insufficient credits error
+    if (errorMessage.includes("Insufficient credits")) {
+      const match = errorMessage.match(/Required: (\d+), Available: (\d+)/);
+      return err({
+        code: "insufficient_credits",
+        message: errorMessage,
+        details: match
+          ? {
+              required: parseInt(match[1], 10),
+              available: parseInt(match[2], 10),
+            }
+          : undefined,
+      });
+    }
+
+    return err({
+      code: `database_${dbError.type}_error`,
+      message: errorMessage,
+      details: dbError,
+    });
+  }
+
+  return ok(result.value);
 }
 
 /**
@@ -70,24 +156,37 @@ export async function createScanJob(
   // Check credits first (before transaction)
   const creditCheck = await checkCredits(userId, CREDIT_COST);
   if (creditCheck.isErr()) {
-    return creditCheck;
+    return err(creditCheck.error);
   }
 
   // Create job and decrement credits in a transaction
-  return wrapDbQuery(async () => {
+  const resultAsync = wrapDbQuery(async () => {
+    // Ensure user exists before transaction
+    await ensureUserExists(userId);
+
     return await db.transaction(async (tx) => {
-      // Get wallet
+      // Get or create wallet
       const wallet = await tx
         .select()
         .from(wallets)
         .where(eq(wallets.userId, userId))
         .limit(1);
 
+      let currentBalance: number;
       if (wallet.length === 0) {
-        throw new Error("Wallet not found");
+        // Create wallet with 0 credits if it doesn't exist
+        const [newWallet] = await tx
+          .insert(wallets)
+          .values({
+            userId,
+            creditBalance: 0,
+          })
+          .returning();
+        currentBalance = newWallet.creditBalance;
+      } else {
+        currentBalance = wallet[0].creditBalance;
       }
 
-      const currentBalance = wallet[0].creditBalance;
       if (currentBalance < CREDIT_COST) {
         throw new Error(
           `Insufficient credits. Required: ${CREDIT_COST}, Available: ${currentBalance}`
@@ -119,37 +218,52 @@ export async function createScanJob(
         state: scanJob.state,
       };
     });
-  }).andThen(async (result) => {
-    if (result.isErr()) {
-      return err({
-        code: "database_error",
-        message: result.error.message,
-        details: result.error,
-      });
-    }
-
-    const jobData = result.value;
-
-    // Enqueue job
-    try {
-      await scanQueue.add("scan-url", {
-        jobId: jobData.id,
-        url: request.url,
-        userId,
-      });
-    } catch (error) {
-      // If queue fails, we should ideally rollback the transaction
-      // But since we're already committed, we log the error
-      console.error("Failed to enqueue scan job:", error);
-      return err({
-        code: "queue_error",
-        message: "Failed to enqueue scan job",
-        details: error,
-      });
-    }
-
-    return ok(jobData);
   });
+
+  // Await the ResultAsync and convert DatabaseError to ServiceError
+  const result = await resultAsync;
+
+  if (result.isErr()) {
+    const dbError = result.error;
+    const errorMessage = dbError.message || "Database error occurred";
+
+    // Check if it's an insufficient credits error
+    if (errorMessage.includes("Insufficient credits")) {
+      return err({
+        code: "insufficient_credits",
+        message: errorMessage,
+        details: dbError,
+      });
+    }
+
+    return err({
+      code: `database_${dbError.type}_error`,
+      message: errorMessage,
+      details: dbError,
+    });
+  }
+
+  const jobData = result.value;
+
+  // Enqueue job
+  try {
+    await scanQueue.add("scan-url", {
+      jobId: jobData.id,
+      url: request.url,
+      userId,
+    });
+  } catch (error) {
+    // If queue fails, we should ideally rollback the transaction
+    // But since we're already committed, we log the error
+    console.error("Failed to enqueue scan job:", error);
+    return err({
+      code: "queue_error",
+      message: "Failed to enqueue scan job",
+      details: error,
+    });
+  }
+
+  return ok(jobData);
 }
 
 /**
@@ -159,7 +273,7 @@ export async function getScanJob(
   jobId: string,
   userId: string
 ): Promise<Result<ScanJobWithResult, ServiceError>> {
-  return wrapDbQuery(async () => {
+  const resultAsync = wrapDbQuery(async () => {
     const job = await db
       .select({
         id: scanJobs.id,
@@ -175,21 +289,12 @@ export async function getScanJob(
       .limit(1);
 
     if (job.length === 0) {
-      return err({
-        code: "not_found",
-        message: "Scan job not found",
-      });
+      throw new Error("Scan job not found");
     }
 
     const scanJob = job[0];
 
-    // Check authorization
-    if (scanJob.userId !== userId) {
-      return err({
-        code: "authorization_error",
-        message: "Not authorized to access this scan job",
-      });
-    }
+    // No authorization check - all users can access any scan job
 
     // Get scan result if available
     let result = null;
@@ -205,18 +310,35 @@ export async function getScanJob(
       }
     }
 
-    return ok({
+    return {
       ...scanJob,
       result,
-    });
-  }).andThen((result) => {
-    if (result.isErr()) {
-      return ResultAsync.fromSafePromise(
-        Promise.resolve(err(result.error))
-      );
-    }
-    return ResultAsync.fromSafePromise(Promise.resolve(result));
+    };
   });
+
+  // Await the ResultAsync and convert DatabaseError to ServiceError
+  const result = await resultAsync;
+
+  if (result.isErr()) {
+    const dbError = result.error;
+    const errorMessage = dbError.message || "Database error occurred";
+
+    // Check if it's a not found error
+    if (errorMessage.includes("not found")) {
+      return err({
+        code: "not_found",
+        message: "Scan job not found",
+      });
+    }
+
+    return err({
+      code: `database_${dbError.type}_error`,
+      message: errorMessage,
+      details: dbError,
+    });
+  }
+
+  return ok(result.value);
 }
 
 /**
@@ -226,7 +348,13 @@ export interface ScanJobWithResult {
   id: string;
   userId: string;
   url: string;
-  state: string;
+  state:
+    | "QUEUED"
+    | "FETCHING"
+    | "ANALYZING"
+    | "COMPLETED"
+    | "FAILED"
+    | "TIMED_OUT";
   createdAt: Date;
   updatedAt: Date;
   version: number;

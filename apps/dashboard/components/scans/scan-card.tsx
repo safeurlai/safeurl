@@ -1,8 +1,14 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RiskScoreIndicator } from "@/components/scans/risk-score-indicator";
-import type { ScanResponse } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { RiskScoreIndicator } from "~/components/scans/risk-score-indicator";
+import type { ScanResponse } from "~/lib/types";
 import { formatDistanceToNow } from "date-fns";
 
 interface ScanCardProps {
@@ -34,7 +40,9 @@ export function ScanCard({ scan }: ScanCardProps) {
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg truncate">{scan.url}</CardTitle>
               <CardDescription className="mt-1">
-                {formatDistanceToNow(new Date(scan.createdAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(scan.createdAt), {
+                  addSuffix: true,
+                })}
               </CardDescription>
             </div>
             <Badge variant={getStateColor(scan.state)}>{scan.state}</Badge>
@@ -69,4 +77,3 @@ export function ScanCard({ scan }: ScanCardProps) {
     </Link>
   );
 }
-

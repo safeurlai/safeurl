@@ -26,7 +26,7 @@ export const auditLogs = sqliteTable(
     urlAccessed: text("url_accessed").notNull(),
     timestamp: integer("timestamp", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`),
+      .default(sql`(strftime('%s', 'now'))`),
     contentHash: text("content_hash").notNull(), // SHA-256 hash
     httpStatus: integer("http_status"),
     httpHeaders: text("http_headers", { mode: "json" }).$type<
@@ -37,21 +37,21 @@ export const auditLogs = sqliteTable(
       mode: "json",
     }).$type<Record<string, unknown>>(),
   },
-  (table) => ({
+  (table) => [
     // Index on scanJobId for job lookup
-    scanJobIdIdx: index("audit_logs_scan_job_id_idx").on(table.scanJobId),
+    index("audit_logs_scan_job_id_idx").on(table.scanJobId),
     // Index on timestamp for time-based queries
-    timestampIdx: index("audit_logs_timestamp_idx").on(table.timestamp),
+    index("audit_logs_timestamp_idx").on(table.timestamp),
     // Index on urlAccessed for URL-based lookups
-    urlAccessedIdx: index("audit_logs_url_accessed_idx").on(table.urlAccessed),
+    index("audit_logs_url_accessed_idx").on(table.urlAccessed),
     // Composite index for job lookup with timestamp (most recent first)
-    scanJobIdTimestampIdx: index("audit_logs_scan_job_id_timestamp_idx").on(
+    index("audit_logs_scan_job_id_timestamp_idx").on(
       table.scanJobId,
       table.timestamp
     ),
     // Index on contentHash for deduplication queries
-    contentHashIdx: index("audit_logs_content_hash_idx").on(table.contentHash),
-  })
+    index("audit_logs_content_hash_idx").on(table.contentHash),
+  ]
 );
 
 export type AuditLog = typeof auditLogs.$inferSelect;

@@ -42,22 +42,7 @@ export const openApiPlugin = new Elysia().use(
           description: "System health and status",
         },
       ],
-      components: {
-        securitySchemes: {
-          BearerAuth: {
-            type: "http",
-            scheme: "bearer",
-            bearerFormat: "JWT",
-            description: "JWT token from Clerk authentication",
-          },
-          ApiKeyAuth: {
-            type: "apiKey",
-            in: "header",
-            name: "X-API-Key",
-            description: "API key for programmatic access",
-          },
-        },
-      },
+      components: {},
     },
     // Configure Zod to JSON Schema mapper for Zod v3
     mapJsonSchema: {

@@ -5,63 +5,74 @@ import type {
   PurchaseCreditsRequest,
 } from "@safeurl/core/schemas";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
 /**
  * API client for SafeURL backend
- * Handles authentication via Clerk tokens
+ * Uses Next.js API proxy routes to forward requests to the backend API
  */
 class ApiClient {
-  private baseUrl: string;
-  private getTokenFn?: () => Promise<string | null>;
-
-  constructor(baseUrl: string = API_URL) {
-    this.baseUrl = baseUrl;
-  }
-
   /**
-   * Set the function to get auth token (from Clerk)
+   * Use Next.js API proxy route instead of direct backend calls
    */
-  setAuthTokenGetter(getTokenFn: () => Promise<string | null>): void {
-    this.getTokenFn = getTokenFn;
+  private getProxyUrl(endpoint: string): string {
+    // Remove leading slash if present
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
+    // Use Next.js API proxy route
+    return `/api/${cleanEndpoint}`;
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    let token: string | null = null;
+    // Use Next.js proxy route instead of direct backend URL
+    const url = this.getProxyUrl(endpoint);
 
-    // Get token if getTokenFn is set (client-side)
-    if (this.getTokenFn) {
-      token = await this.getTokenFn();
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        error: {
-          code: "unknown_error",
-          message: `HTTP ${response.status}: ${response.statusText}`,
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
         },
-      }));
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({
+          error: {
+            code: "unknown_error",
+            message: `HTTP ${response.status}: ${response.statusText}`,
+          },
+        }));
+        throw new ApiError(
+          error.error?.code || "unknown_error",
+          error.error?.message || "An error occurred",
+          error.error?.details
+        );
+      }
+
+      return response.json();
+    } catch (error) {
+      // Handle network errors (API not reachable, CORS, etc.)
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new ApiError(
+          "network_error",
+          `Failed to connect to API proxy. Please ensure the Next.js server is running.`,
+          { originalError: error.message }
+        );
+      }
+      
+      // Re-throw unknown errors
       throw new ApiError(
-        error.error?.code || "unknown_error",
-        error.error?.message || "An error occurred",
-        error.error?.details
+        "unknown_error",
+        error instanceof Error ? error.message : "An unexpected error occurred",
+        error
       );
     }
-
-    return response.json();
   }
 
   // Scans endpoints

@@ -96,6 +96,15 @@ export const purchaseCreditsRequestSchema = z.object({
 // ============================================================================
 
 /**
+ * Create scan job response schema
+ * Returned when creating a new scan job
+ */
+export const createScanResponseSchema = z.object({
+  id: z.string().uuid().describe("Scan job ID"),
+  state: z.enum(["QUEUED"]).describe("Initial state of the scan job"),
+});
+
+/**
  * Scan result response schema
  * Returned when retrieving scan results
  */
@@ -190,6 +199,21 @@ export const creditTransactionSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+/**
+ * Purchase credits response schema
+ * Response returned when purchasing credits
+ */
+export const purchaseCreditsResponseSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string(),
+  amount: z.number().int().positive(),
+  paymentMethod: z.enum(["crypto", "stripe"]),
+  status: z.string(),
+  createdAt: z.string().datetime(),
+  completedAt: z.string().datetime(),
+  newBalance: z.number().int().min(0),
+});
+
 // ============================================================================
 // Type Exports
 // ============================================================================
@@ -199,8 +223,12 @@ export type GetScanRequest = z.infer<typeof getScanRequestSchema>;
 export type PurchaseCreditsRequest = z.infer<
   typeof purchaseCreditsRequestSchema
 >;
+export type CreateScanResponse = z.infer<typeof createScanResponseSchema>;
 export type ScanResponse = z.infer<typeof scanResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 export type CreditBalanceResponse = z.infer<typeof creditBalanceResponseSchema>;
 export type CreditPurchase = z.infer<typeof creditPurchaseSchema>;
 export type CreditTransaction = z.infer<typeof creditTransactionSchema>;
+export type PurchaseCreditsResponse = z.infer<
+  typeof purchaseCreditsResponseSchema
+>;

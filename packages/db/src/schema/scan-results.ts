@@ -33,28 +33,28 @@ export const scanResults = sqliteTable(
       .notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`),
+      .default(sql`(strftime('%s', 'now'))`),
   },
-  (table) => ({
+  (table) => [
     // Check constraint: risk score must be between 0 and 100
-    riskScoreCheck: check(
+    check(
       "risk_score_range",
       sql`${table.riskScore} >= 0 AND ${table.riskScore} <= 100`
     ),
     // Index on contentHash for deduplication queries (finding scans of same content)
-    contentHashIdx: index("scan_results_content_hash_idx").on(
+    index("scan_results_content_hash_idx").on(
       table.contentHash
     ),
     // Index on createdAt for time-based queries
-    createdAtIdx: index("scan_results_created_at_idx").on(table.createdAt),
+    index("scan_results_created_at_idx").on(table.createdAt),
     // Index on riskScore for filtering high-risk results
-    riskScoreIdx: index("scan_results_risk_score_idx").on(table.riskScore),
+    index("scan_results_risk_score_idx").on(table.riskScore),
     // Composite index for querying high-risk results by time
-    riskScoreCreatedAtIdx: index("scan_results_risk_score_created_at_idx").on(
+    index("scan_results_risk_score_created_at_idx").on(
       table.riskScore,
       table.createdAt
     ),
-  })
+  ]
 );
 
 export type ScanResult = typeof scanResults.$inferSelect;

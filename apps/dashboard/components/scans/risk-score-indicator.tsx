@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "~/lib/utils";
 
 interface RiskScoreIndicatorProps {
   riskScore: number;
@@ -55,4 +55,3 @@ export function RiskScoreIndicator({
     </div>
   );
 }
-

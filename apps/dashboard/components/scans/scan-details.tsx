@@ -1,63 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RiskScoreIndicator } from "@/components/scans/risk-score-indicator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { api, ApiError } from "@/lib/api";
-import type { ScanResponse } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { RiskScoreIndicator } from "~/components/scans/risk-score-indicator";
+import { Skeleton } from "~/components/ui/skeleton";
+import { useScan } from "~/lib/hooks/use-api";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ExternalLink, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "~/components/ui/button";
 
 interface ScanDetailsProps {
   scanId: string;
 }
 
 export function ScanDetails({ scanId }: ScanDetailsProps) {
-  const { getToken } = useAuth();
-  const [scan, setScan] = useState<ScanResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: scan, isLoading, error } = useScan(scanId, {
+    enabled: !!scanId,
+  });
 
-  // Set up auth token getter for API client
-  useEffect(() => {
-    if (getToken) {
-      api.setAuthTokenGetter(async () => {
-        try {
-          return await getToken();
-        } catch {
-          return null;
-        }
-      });
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    async function fetchScan() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.getScan(scanId);
-        setScan(data);
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Failed to load scan details");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchScan();
-  }, [scanId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto py-8 space-y-6">
         <Skeleton className="h-12 w-64" />
@@ -67,10 +35,12 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
   }
 
   if (error || !scan) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Scan not found";
     return (
       <div className="container mx-auto py-8 space-y-6">
         <div className="text-center py-12">
-          <p className="text-destructive mb-4">{error || "Scan not found"}</p>
+          <p className="text-destructive mb-4">{errorMessage}</p>
           <Link href="/">
             <Button variant="outline">Back to Dashboard</Button>
           </Link>
@@ -88,7 +58,9 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
         </Link>
         <div className="flex-1">
           <h1 className="text-3xl font-bold">Scan Details</h1>
-          <p className="text-muted-foreground mt-1">Detailed analysis results</p>
+          <p className="text-muted-foreground mt-1">
+            Detailed analysis results
+          </p>
         </div>
       </div>
 
@@ -101,7 +73,9 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">URL</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  URL
+                </label>
                 <div className="flex items-center gap-2 mt-1">
                   <a
                     href={scan.url}
@@ -116,19 +90,28 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </label>
                   <div className="mt-1">
-                    <Badge variant={
-                      scan.state === "COMPLETED" ? "success" :
-                      scan.state === "FAILED" || scan.state === "TIMED_OUT" ? "danger" :
-                      "warning"
-                    }>
+                    <Badge
+                      variant={
+                        scan.state === "COMPLETED"
+                          ? "success"
+                          : scan.state === "FAILED" ||
+                            scan.state === "TIMED_OUT"
+                          ? "danger"
+                          : "warning"
+                      }
+                    >
                       {scan.state}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Scan ID</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Scan ID
+                  </label>
                   <div className="mt-1 text-sm font-mono">{scan.id}</div>
                 </div>
               </div>
@@ -139,7 +122,9 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
                     Created
                   </label>
                   <div className="mt-1 text-sm">
-                    {formatDistanceToNow(new Date(scan.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(scan.createdAt), {
+                      addSuffix: true,
+                    })}
                   </div>
                 </div>
                 <div>
@@ -148,7 +133,9 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
                     Updated
                   </label>
                   <div className="mt-1 text-sm">
-                    {formatDistanceToNow(new Date(scan.updatedAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(scan.updatedAt), {
+                      addSuffix: true,
+                    })}
                   </div>
                 </div>
               </div>
@@ -161,10 +148,15 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Risk Assessment</CardTitle>
-                  <CardDescription>Overall risk score and analysis</CardDescription>
+                  <CardDescription>
+                    Overall risk score and analysis
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RiskScoreIndicator riskScore={scan.result.riskScore} size="lg" />
+                  <RiskScoreIndicator
+                    riskScore={scan.result.riskScore}
+                    size="lg"
+                  />
                 </CardContent>
               </Card>
 
@@ -178,7 +170,11 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {scan.result.categories.map((category) => (
-                        <Badge key={category} variant="outline" className="text-sm py-1 px-3">
+                        <Badge
+                          key={category}
+                          variant="outline"
+                          className="text-sm py-1 px-3"
+                        >
                           {category}
                         </Badge>
                       ))}
@@ -192,12 +188,16 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle>Detected Indicators</CardTitle>
-                    <CardDescription>Specific indicators that contributed to the assessment</CardDescription>
+                    <CardDescription>
+                      Specific indicators that contributed to the assessment
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="list-disc list-inside space-y-2">
                       {scan.result.indicators.map((indicator, index) => (
-                        <li key={index} className="text-sm">{indicator}</li>
+                        <li key={index} className="text-sm">
+                          {indicator}
+                        </li>
                       ))}
                     </ul>
                   </CardContent>
@@ -208,11 +208,15 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Analysis Reasoning</CardTitle>
-                  <CardDescription>Detailed explanation of the risk assessment</CardDescription>
+                  <CardDescription>
+                    Detailed explanation of the risk assessment
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none">
-                    <p className="whitespace-pre-wrap">{scan.result.reasoning}</p>
+                    <p className="whitespace-pre-wrap">
+                      {scan.result.reasoning}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -225,26 +229,44 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">HTTP Status</label>
-                      <div className="mt-1 text-sm">{scan.result.httpStatus ?? "N/A"}</div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        HTTP Status
+                      </label>
+                      <div className="mt-1 text-sm">
+                        {scan.result.httpStatus ?? "N/A"}
+                      </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
-                      <div className="mt-1 text-sm">{scan.result.contentType ?? "N/A"}</div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Content Type
+                      </label>
+                      <div className="mt-1 text-sm">
+                        {scan.result.contentType ?? "N/A"}
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Content Hash</label>
-                    <div className="mt-1 text-sm font-mono break-all">{scan.result.contentHash}</div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Content Hash
+                    </label>
+                    <div className="mt-1 text-sm font-mono break-all">
+                      {scan.result.contentHash}
+                    </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Model Used</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Model Used
+                    </label>
                     <div className="mt-1 text-sm">{scan.result.modelUsed}</div>
                   </div>
                   {scan.result.confidenceScore && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Confidence Score</label>
-                      <div className="mt-1 text-sm">{(scan.result.confidenceScore * 100).toFixed(1)}%</div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Confidence Score
+                      </label>
+                      <div className="mt-1 text-sm">
+                        {(scan.result.confidenceScore * 100).toFixed(1)}%
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -256,7 +278,8 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">
-                  Scan is still in progress. Results will appear here when complete.
+                  Scan is still in progress. Results will appear here when
+                  complete.
                 </p>
               </CardContent>
             </Card>
@@ -266,4 +289,3 @@ export function ScanDetails({ scanId }: ScanDetailsProps) {
     </div>
   );
 }
-

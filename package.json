@@ -15,6 +15,7 @@
     "typecheck": "bun run --filter='./**' typecheck",
     "db:generate": "bun run --filter='@safeurl/db' db:generate",
     "db:migrate": "bun run --filter='@safeurl/db' db:migrate",
+    "db:push": "bun run --filter='@safeurl/db' db:push",
     "db:studio": "bun run --filter='@safeurl/db' db:studio"
   },
   "devDependencies": {

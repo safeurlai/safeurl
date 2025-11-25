@@ -23,8 +23,6 @@ function getStatusCode(error: unknown): number {
     
     // Handle Result type errors
     if (code.includes("validation")) return 400;
-    if (code.includes("authentication") || code.includes("unauthorized")) return 401;
-    if (code.includes("authorization") || code.includes("forbidden")) return 403;
     if (code.includes("not_found")) return 404;
     if (code.includes("payment") || code.includes("insufficient_credits")) return 402;
   }
@@ -117,17 +115,6 @@ export const errorHandlerPlugin = new Elysia()
       );
     }
 
-    // Handle authentication errors
-    if (code === "UNAUTHORIZED") {
-      set.status = 401;
-      return formatErrorResponse(
-        {
-          code: "authentication_error",
-          message: "Authentication required",
-        },
-        requestId
-      );
-    }
 
     // Default error handling
     const statusCode = getStatusCode(error);

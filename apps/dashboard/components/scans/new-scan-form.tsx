@@ -1,38 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { api, ApiError } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { useCreateScan } from "~/lib/hooks/use-api";
+import { useToast } from "~/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 
-const urlSchema = z.string().url("Invalid URL format").min(1, "URL is required");
+const urlSchema = z
+  .string()
+  .url("Invalid URL format")
+  .min(1, "URL is required");
 
 export function NewScanForm() {
   const router = useRouter();
-  const { getToken } = useAuth();
   const { toast } = useToast();
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Set up auth token getter for API client
-  useEffect(() => {
-    if (getToken) {
-      api.setAuthTokenGetter(async () => {
-        try {
-          return await getToken();
-        } catch {
-          return null;
-        }
-      });
-    }
-  }, [getToken]);
+  const createScan = useCreateScan();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,33 +35,30 @@ export function NewScanForm() {
     // Validate URL
     const validation = urlSchema.safeParse(url);
     if (!validation.success) {
-      setError(validation.error.errors[0].message);
+      const errorMessage =
+        validation.error.issues[0]?.message || "Invalid URL format";
+      setError(errorMessage);
       return;
     }
 
     try {
-      setLoading(true);
-      const result = await api.createScan({ url });
-      
+      const result = await createScan.mutateAsync({ url });
+
       toast({
         title: "Scan created",
         description: "Your scan has been queued successfully.",
       });
-      
+
       router.push(`/scans/${result.id}`);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-        toast({
-          title: "Failed to create scan",
-          description: err.message,
-          variant: "destructive",
-        });
-      } else {
-        setError("An unexpected error occurred");
-      }
-    } finally {
-      setLoading(false);
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(errorMessage);
+      toast({
+        title: "Failed to create scan",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,7 +83,8 @@ export function NewScanForm() {
           <CardHeader>
             <CardTitle>Scan URL</CardTitle>
             <CardDescription>
-              Enter a URL to analyze for safety and security risks. Each scan costs 1 credit.
+              Enter a URL to analyze for safety and security risks. Each scan
+              costs 1 credit.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -108,15 +100,19 @@ export function NewScanForm() {
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com"
                   className="mt-1 w-full px-3 py-2 border rounded-md"
-                  disabled={loading}
+                  disabled={createScan.isPending}
                   required
                 />
                 {error && (
                   <p className="mt-1 text-sm text-destructive">{error}</p>
                 )}
               </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Creating scan..." : "Create Scan"}
+              <Button
+                type="submit"
+                disabled={createScan.isPending}
+                className="w-full"
+              >
+                {createScan.isPending ? "Creating scan..." : "Create Scan"}
               </Button>
             </form>
           </CardContent>
@@ -125,4 +121,3 @@ export function NewScanForm() {
     </div>
   );
 }
-

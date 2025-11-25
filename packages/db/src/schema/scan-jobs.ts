@@ -14,7 +14,7 @@ export const scanJobStateEnum = [
   "FAILED",
   "TIMED_OUT",
 ] as const;
-export type ScanJobState = typeof scanJobStateEnum[number];
+export type ScanJobState = (typeof scanJobStateEnum)[number];
 
 /**
  * Scan Jobs table
@@ -36,36 +36,29 @@ export const scanJobs = sqliteTable(
       .default("QUEUED"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`),
+      .default(sql`(strftime('%s', 'now'))`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`)
+      .default(sql`(strftime('%s', 'now'))`)
       .$onUpdate(() => new Date()),
     version: integer("version").notNull().default(1),
   },
-  (table) => ({
+  (table) => [
     // Index on userId for user queries
-    userIdIdx: index("scan_jobs_user_id_idx").on(table.userId),
+    index("scan_jobs_user_id_idx").on(table.userId),
     // Index on state for worker queries (filtering QUEUED/FETCHING jobs)
-    stateIdx: index("scan_jobs_state_idx").on(table.state),
+    index("scan_jobs_state_idx").on(table.state),
     // Index on createdAt for time-based queries
-    createdAtIdx: index("scan_jobs_created_at_idx").on(table.createdAt),
+    index("scan_jobs_created_at_idx").on(table.createdAt),
     // Composite index for user history queries (most recent first)
     // Note: SQLite doesn't support DESC in index definition, but query planner can use it
-    userIdCreatedAtIdx: index("scan_jobs_user_id_created_at_idx").on(
-      table.userId,
-      table.createdAt
-    ),
+    index("scan_jobs_user_id_created_at_idx").on(table.userId, table.createdAt),
     // Index on url for deduplication queries and URL-based lookups
-    urlIdx: index("scan_jobs_url_idx").on(table.url),
+    index("scan_jobs_url_idx").on(table.url),
     // Composite index for worker queries: state + createdAt (for processing oldest jobs first)
-    stateCreatedAtIdx: index("scan_jobs_state_created_at_idx").on(
-      table.state,
-      table.createdAt
-    ),
-  })
+    index("scan_jobs_state_created_at_idx").on(table.state, table.createdAt),
+  ]
 );
 
 export type ScanJob = typeof scanJobs.$inferSelect;
 export type NewScanJob = typeof scanJobs.$inferInsert;
-

@@ -5,7 +5,10 @@
 export {
   purchaseCreditsRequestSchema,
   creditBalanceResponseSchema,
+  errorResponseSchema,
+  purchaseCreditsResponseSchema,
   type PurchaseCreditsRequest,
   type CreditBalanceResponse,
+  type ErrorResponse,
+  type PurchaseCreditsResponse,
 } from "@safeurl/core/schemas";
-

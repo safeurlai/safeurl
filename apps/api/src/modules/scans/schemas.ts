@@ -5,9 +5,12 @@
 export {
   createScanRequestSchema,
   getScanRequestSchema,
+  createScanResponseSchema,
   scanResponseSchema,
+  errorResponseSchema,
   type CreateScanRequest,
   type GetScanRequest,
+  type CreateScanResponse,
   type ScanResponse,
+  type ErrorResponse,
 } from "@safeurl/core/schemas";
-

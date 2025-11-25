@@ -1,7 +1,13 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
 
 export function ApiKeyManagement() {
   return (
@@ -16,11 +22,11 @@ export function ApiKeyManagement() {
         <div className="text-center py-8 text-muted-foreground">
           <p>API key management coming soon.</p>
           <p className="text-sm mt-2">
-            This feature will allow you to create and manage API keys for programmatic access to the SafeURL API.
+            This feature will allow you to create and manage API keys for
+            programmatic access to the SafeURL API.
           </p>
         </div>
       </CardContent>
     </Card>
   );
 }
-

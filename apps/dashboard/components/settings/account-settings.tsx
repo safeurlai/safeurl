@@ -1,7 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserButton } from "@clerk/nextjs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 
 export function AccountSettings() {
   return (
@@ -17,18 +22,16 @@ export function AccountSettings() {
           <div>
             <p className="font-medium">Profile</p>
             <p className="text-sm text-muted-foreground">
-              Manage your profile through Clerk
+              Account settings coming soon
             </p>
           </div>
-          <UserButton />
         </div>
         <div className="pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            Account management is handled by Clerk. Click the user button above to manage your profile, email, password, and other account settings.
+            Account management features will be available in a future update.
           </p>
         </div>
       </CardContent>
     </Card>
   );
 }
-

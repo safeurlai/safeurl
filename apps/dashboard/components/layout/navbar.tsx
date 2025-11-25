@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton, SignInButton, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 import { Shield, Settings, Home } from "lucide-react";
 
 const navigation = [
@@ -24,45 +23,26 @@ export function Navbar() {
               <Shield className="h-6 w-6" />
               <span className="text-xl font-bold">SafeURL</span>
             </Link>
-            <SignedIn>
-              <div className="hidden md:flex gap-1">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link key={item.name} href={item.href}>
-                      <Button
-                        variant={isActive ? "secondary" : "ghost"}
-                        className={cn(
-                          "gap-2",
-                          isActive && "bg-secondary"
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.name}
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </div>
-            </SignedIn>
-          </div>
-          <div className="flex items-center gap-2">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="ghost">Sign In</Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button>Sign Up</Button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
+            <div className="hidden md:flex gap-1">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn("gap-2", isActive && "bg-secondary")}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.name}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
     </nav>
   );
 }
-

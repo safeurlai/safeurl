@@ -20,7 +20,7 @@ export const app = new Elysia()
       origin: process.env.CORS_ORIGIN || "*",
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-API-Key", "X-Request-ID"],
+      allowedHeaders: ["Content-Type", "X-Request-ID"],
     })
   )
   
@@ -30,7 +30,7 @@ export const app = new Elysia()
   // OpenAPI documentation
   .use(openApiPlugin)
   
-  // Health check endpoint (before auth)
+  // Health check endpoint
   .get("/health", () => ({
     status: "ok",
     timestamp: new Date().toISOString(),

@@ -26,22 +26,22 @@ export const wallets = sqliteTable(
     creditBalance: integer("credit_balance").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`),
+      .default(sql`(strftime('%s', 'now'))`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`unixepoch()`)
+      .default(sql`(strftime('%s', 'now'))`)
       .$onUpdate(() => new Date()),
   },
-  (table) => ({
+  (table) => [
     // Unique constraint: one wallet per user (enforced at database level)
     // Note: This also creates an index automatically in SQLite
-    userIdUnique: unique("wallets_user_id_unique").on(table.userId),
+    unique("wallets_user_id_unique").on(table.userId),
     // Check constraint: credit balance must be non-negative
-    creditBalanceCheck: check(
+    check(
       "credit_balance_non_negative",
       sql`${table.creditBalance} >= 0`
     ),
-  })
+  ]
 );
 
 export type Wallet = typeof wallets.$inferSelect;

@@ -6,7 +6,6 @@ RESTful API service for AI-powered URL safety screening. Built with ElysiaJS, Bu
 
 - **URL Scanning**: Create and retrieve scan jobs for URL safety analysis
 - **Credit System**: Credit-based billing with balance management
-- **Authentication**: Clerk OAuth2/OIDC + API key support
 - **OpenAPI Docs**: Auto-generated Swagger documentation at `/openapi`
 - **Observability**: OpenTelemetry tracing and distributed monitoring
 - **Queue Integration**: Redis/BullMQ for async job processing
@@ -17,7 +16,6 @@ RESTful API service for AI-powered URL safety screening. Built with ElysiaJS, Bu
 - **Framework**: ElysiaJS
 - **Database**: Turso (libSQL) via Drizzle ORM
 - **Queue**: Redis + BullMQ
-- **Auth**: Clerk (elysia-clerk)
 - **Validation**: Zod schemas from `@safeurl/core`
 - **Error Handling**: neverthrow `Result<T, E>` types
 
@@ -56,7 +54,7 @@ Server runs on `http://localhost:8080` by default.
 - `GET /health` - Health check
 - `GET /openapi` - OpenAPI/Swagger documentation
 
-All endpoints require authentication via Bearer token (Clerk JWT) or API key (`X-API-Key` header).
+All endpoints are publicly accessible without authentication.
 
 ## Environment Variables
 
@@ -66,8 +64,6 @@ DATABASE_URL=file:./local.db      # Turso database URL
 REDIS_HOST=localhost              # Redis host
 REDIS_PORT=6379                   # Redis port
 REDIS_PASSWORD=                   # Redis password (optional)
-CLERK_SECRET_KEY=                 # Clerk secret key
-CLERK_PUBLISHABLE_KEY=            # Clerk publishable key
 CORS_ORIGIN=*                     # CORS allowed origins
 ```
 
@@ -84,7 +80,6 @@ src/
 │   ├── scans/         # Scan endpoints & business logic
 │   └── credits/       # Credit management endpoints
 ├── plugins/
-│   ├── auth.ts        # Authentication plugin
 │   ├── error-handler.ts
 │   ├── openapi.ts     # OpenAPI documentation
 │   └── opentelemetry.ts

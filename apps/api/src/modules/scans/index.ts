@@ -1,7 +1,12 @@
 import { Elysia } from "elysia";
-import { createScanRequestSchema, getScanRequestSchema, scanResponseSchema } from "./schemas";
+import {
+  createScanRequestSchema,
+  getScanRequestSchema,
+  createScanResponseSchema,
+  scanResponseSchema,
+  errorResponseSchema,
+} from "./schemas";
 import { createScanJob, getScanJob } from "./service";
-import { authPlugin } from "../../plugins/auth";
 
 /**
  * Convert database scan job to API response format
@@ -10,7 +15,13 @@ function formatScanResponse(job: {
   id: string;
   userId: string;
   url: string;
-  state: string;
+  state:
+    | "QUEUED"
+    | "FETCHING"
+    | "ANALYZING"
+    | "COMPLETED"
+    | "FAILED"
+    | "TIMED_OUT";
   createdAt: Date;
   updatedAt: Date;
   version: number;
@@ -54,16 +65,19 @@ function formatScanResponse(job: {
 /**
  * Scans module routes
  */
+const DEFAULT_USER_ID = "user_anonymous"; // Default user ID when auth is disabled
+
 export const scansModule = new Elysia({ prefix: "/scans" })
-  .use(authPlugin)
   .post(
     "/",
-    async ({ body, user, set }) => {
-      const result = await createScanJob(user.clerkUserId, body);
+    async ({ body, set }) => {
+      console.log(`[POST /v1/scans] Request received`);
+
+      const result = await createScanJob(DEFAULT_USER_ID, body);
 
       if (result.isErr()) {
         const error = result.error;
-        
+
         // Map error codes to HTTP status codes
         if (error.code === "insufficient_credits") {
           set.status = 402;
@@ -93,50 +107,41 @@ export const scansModule = new Elysia({ prefix: "/scans" })
       body: createScanRequestSchema,
       detail: {
         summary: "Create a new URL scan job",
-        description: "Creates a new URL scan job and deducts credits from the user's wallet",
+        description:
+          "Creates a new URL scan job and deducts credits from the user's wallet",
         tags: ["Scans"],
-        security: [{ BearerAuth: [] }],
-      },
-      response: {
-        201: {
-          description: "Scan job created successfully",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  id: { type: "string", format: "uuid" },
-                  state: { type: "string", enum: ["QUEUED"] },
-                },
-                required: ["id", "state"],
-              },
-            },
+        responses: {
+          201: {
+            description: "Scan job created successfully",
+          },
+          400: {
+            description: "Validation error",
+          },
+          402: {
+            description: "Insufficient credits",
+          },
+          500: {
+            description: "Server error",
           },
         },
-        400: {
-          description: "Validation error",
-        },
-        402: {
-          description: "Insufficient credits",
-        },
-        500: {
-          description: "Server error",
-        },
+      },
+      response: {
+        201: createScanResponseSchema,
       },
     }
   )
   .get(
     "/:id",
-    async ({ params, user, set }) => {
-      const result = await getScanJob(params.id, user.clerkUserId);
+    async ({ params, set }) => {
+      console.log(`[GET /v1/scans/:id] Request received for id: ${params.id}`);
+
+      const result = await getScanJob(params.id, DEFAULT_USER_ID);
 
       if (result.isErr()) {
         const error = result.error;
-        
+
         if (error.code === "not_found") {
           set.status = 404;
-        } else if (error.code === "authorization_error") {
-          set.status = 403;
         } else {
           set.status = 500;
         }
@@ -145,8 +150,14 @@ export const scansModule = new Elysia({ prefix: "/scans" })
           error: {
             code: error.code,
             message: error.message,
-            details: error.details,
+            details:
+              error.details &&
+              typeof error.details === "object" &&
+              !Array.isArray(error.details)
+                ? (error.details as Record<string, unknown>)
+                : undefined,
           },
+          timestamp: new Date().toISOString(),
         };
       }
 
@@ -157,29 +168,25 @@ export const scansModule = new Elysia({ prefix: "/scans" })
       params: getScanRequestSchema,
       detail: {
         summary: "Get scan result by job ID",
-        description: "Retrieves the scan result for a specific job ID. Returns the full result if completed, or status if in progress.",
+        description:
+          "Retrieves the scan result for a specific job ID. Returns the full result if completed, or status if in progress.",
         tags: ["Scans"],
-        security: [{ BearerAuth: [] }],
-      },
-      response: {
-        200: {
-          description: "Scan job retrieved successfully",
-          content: {
-            "application/json": {
-              schema: scanResponseSchema,
-            },
+        responses: {
+          200: {
+            description: "Scan job retrieved successfully",
+          },
+          404: {
+            description: "Scan job not found",
+          },
+          500: {
+            description: "Server error",
           },
         },
-        403: {
-          description: "Not authorized to access this scan job",
-        },
-        404: {
-          description: "Scan job not found",
-        },
-        500: {
-          description: "Server error",
-        },
+      },
+      response: {
+        200: scanResponseSchema,
+        404: errorResponseSchema,
+        500: errorResponseSchema,
       },
     }
   );
-
