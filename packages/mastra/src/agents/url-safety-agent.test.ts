@@ -4,7 +4,7 @@ import { urlSafetyAgent, urlSafetyAnalysisSchema } from "./url-safety-agent";
 
 test("should analyze URL and return structured output", async () => {
   const result = await urlSafetyAgent.generate(
-    "Analyze this URL for safety: https://pornhub.com",
+    "Analyze this URL for NSFW content: https://pornhub.com",
     {
       structuredOutput: {
         schema: urlSafetyAnalysisSchema,

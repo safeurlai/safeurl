@@ -14,7 +14,7 @@ import {
 export const urlSafetyAnalysisSchema = z.object({
   riskScore: z.number().min(0).max(100),
   categories: z.array(
-    z.enum(["phishing", "malware", "scam", "suspicious", "safe"])
+    z.enum(["phishing", "malware", "scam", "suspicious", "nsfw", "safe"])
   ),
   confidence: z.number().min(0).max(1),
   reasoning: z.string(),
@@ -44,6 +44,7 @@ const openrouter = createOpenRouter({
  * - Malware distribution
  * - Scam patterns
  * - Suspicious redirects
+ * - NSFW/adult content
  * - Content safety
  *
  * Uses Grok-4.1-Fast (free tier) via OpenRouter for high-quality analysis with
@@ -52,24 +53,20 @@ const openrouter = createOpenRouter({
 export const urlSafetyAgent = new Agent({
   name: "url-safety-agent",
   description:
-    "URL safety analyst detecting phishing, malware, scams, and suspicious content",
-  instructions: `Analyze URLs for safety threats: phishing, malware, scams, suspicious redirects, and harmful content.
+    "URL safety analyst detecting phishing, malware, scams, NSFW content, and suspicious activity",
+  instructions: `Analyze URLs for safety threats: phishing, malware, scams, suspicious redirects, NSFW/adult content, and harmful material.
 
 Use tools iteratively:
-1. content-extraction: Get URL metadata
-2. reputation-check: Verify domain credibility  
-3. screenshot-analysis: Detect visual phishing patterns
+1. content-extraction: Get URL metadata (title, description, headers) - look for adult/NSFW keywords
+2. reputation-check: Verify domain credibility and check for known adult content domains
+3. screenshot-analysis: Detect visual patterns including NSFW imagery, phishing layouts, and suspicious content
 
-After completing your analysis, you must return a JSON object with the following structure:
-{
-  "riskScore": <number 0-100>,
-  "categories": <array of strings from: "phishing", "malware", "scam", "suspicious", "safe">,
-  "confidence": <number 0-1>,
-  "reasoning": <string explaining your analysis>,
-  "indicators": <array of strings describing specific indicators found>
-}
-
-Return ONLY valid JSON, no additional text before or after.`,
+NSFW Detection Guidelines:
+- Check page title and description for adult content keywords (explicit terms, adult services, etc.)
+- Analyze visual content in screenshots for explicit imagery, adult themes, or inappropriate material
+- Look for domain patterns commonly associated with adult content sites
+- Consider metadata and headers that may indicate adult content categories
+- Be thorough but accurate - false positives can be problematic`,
   model: openrouter("x-ai/grok-4.1-fast:free"),
   tools: {
     contentExtractionTool,
