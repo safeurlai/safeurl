@@ -1,6 +1,11 @@
+"use client";
+
 import Image from "next/image";
+import { trpc } from "~/lib/trpc";
 
 export default function Home() {
+  const hello = trpc.hello.useQuery({ text: "tRPC" });
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
@@ -33,6 +38,19 @@ export default function Home() {
             </a>{" "}
             center.
           </p>
+          {hello.isLoading && (
+            <p className="text-zinc-600 dark:text-zinc-400">Loading tRPC...</p>
+          )}
+          {hello.data && (
+            <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+              {hello.data.greeting}
+            </p>
+          )}
+          {hello.error && (
+            <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+              Error: {hello.error.message}
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
           <a

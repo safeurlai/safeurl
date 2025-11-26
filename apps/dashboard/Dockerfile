@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.2-slim AS deps
+FROM oven/bun:1.3.3-slim AS deps
 WORKDIR /app
 
 COPY . .
@@ -10,7 +10,7 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile || bun install || true; \
     test -d node_modules && test -d packages/core && test -d packages/db
 
-FROM oven/bun:1.3.2-slim AS builder
+FROM oven/bun:1.3.3-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -25,7 +25,7 @@ WORKDIR /app/apps/dashboard
 # Build Next.js app
 RUN bun run build
 
-FROM oven/bun:1.3.2-slim AS runtime
+FROM oven/bun:1.3.3-slim AS runtime
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules

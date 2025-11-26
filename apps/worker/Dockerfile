@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.2-slim AS deps
+FROM oven/bun:1.3.3-slim AS deps
 WORKDIR /app
 
 COPY . .
@@ -10,7 +10,7 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile || bun install || true; \
     test -d node_modules && test -d packages/core && test -d packages/db
 
-FROM oven/bun:1.3.2-slim AS runtime
+FROM oven/bun:1.3.3-slim AS runtime
 WORKDIR /app
 
 # Note: dockerode connects via Docker socket, no CLI needed
