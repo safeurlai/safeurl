@@ -25,7 +25,7 @@ const contentExtractionOutputSchema = z.object({
     contentHash: z.string(),
     contentType: z.string(),
     httpStatus: z.number(),
-    headers: z.record(z.string()),
+    headers: z.record(z.string()).optional(), // Only include essential headers
   }),
 });
 
@@ -67,10 +67,13 @@ async function executeContentExtraction(
 
   const response = fetchResult.value;
 
-  // Step 3: Extract headers
+  // Step 3: Extract essential headers only (reduce token usage)
+  const essentialHeaders = ["content-type", "content-length", "server", "x-frame-options", "x-content-type-options"];
   const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
-    headers[key] = value;
+    if (essentialHeaders.includes(key.toLowerCase())) {
+      headers[key] = value;
+    }
   });
 
   // Step 4: Get content type
@@ -127,7 +130,7 @@ async function executeContentExtraction(
       contentHash,
       contentType,
       httpStatus: response.status,
-      headers,
+      ...(Object.keys(headers).length > 0 && { headers }),
     },
   });
 }
@@ -139,7 +142,7 @@ async function executeContentExtraction(
 export const contentExtractionTool = createTool({
   id: "content-extraction",
   description:
-    "Extracts metadata (title, description, headers, content hash) from a URL without storing the actual content. Uses SSRF-safe URL validation.",
+    "Extracts URL metadata (title, description, headers, hash) without storing content. SSRF-safe.",
   inputSchema: contentExtractionInputSchema,
   outputSchema: contentExtractionOutputSchema,
   execute: async ({

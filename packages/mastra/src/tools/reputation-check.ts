@@ -166,7 +166,7 @@ async function executeReputationCheck(
 export const reputationCheckTool = createTool({
   id: "reputation-check",
   description:
-    "Checks domain reputation using basic heuristics, SSL validation, and pattern analysis. Can optionally integrate with threat intelligence APIs.",
+    "Checks domain reputation using heuristics, SSL validation, and pattern analysis.",
   inputSchema: reputationCheckInputSchema,
   outputSchema: reputationCheckOutputSchema,
   execute: async ({
