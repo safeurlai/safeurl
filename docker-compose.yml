@@ -1,4 +1,8 @@
 services:
+  # Database: Turso (libSQL) - accessed directly via workspace package
+  # No Docker service needed - services connect to Turso cloud via DATABASE_URL
+  # The @safeurl/db workspace package handles database connections
+  
   redis:
     image: redis:7-alpine
     ports:
@@ -27,15 +31,16 @@ services:
       - PORT=8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DATABASE_URL=file:./data/local.db
+      # Database: Turso (libSQL) - accessed via workspace package
+      # Reads from .env file: DATABASE_URL or TURSO_CONNECTION_URL
+      - DATABASE_URL=${DATABASE_URL:-${TURSO_CONNECTION_URL:-}}
+      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN:-${TURSO_AUTH_TOKEN:-}}
       - CORS_ORIGIN=*
       - NODE_ENV=production
       # These read from host environment (populated by .env file)
       # Make sure to create a .env file with these variables
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
       - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY:-}
-    volumes:
-      - api-db:/app/apps/api/data
     depends_on:
       redis:
         condition: service_healthy
@@ -60,7 +65,10 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DATABASE_URL=file:./data/local.db
+      # Database: Turso (libSQL) - accessed via workspace package
+      # Reads from .env file: DATABASE_URL or TURSO_CONNECTION_URL
+      - DATABASE_URL=${DATABASE_URL:-${TURSO_CONNECTION_URL:-}}
+      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN:-${TURSO_AUTH_TOKEN:-}}
       - DOCKER_SOCKET_PATH=/var/run/docker.sock
       - FETCHER_IMAGE=safeurl-fetcher:latest
       - WORKER_CONCURRENCY=5
@@ -69,7 +77,6 @@ services:
       - CONTAINER_CPU_LIMIT=0.5
       - NODE_ENV=production
     volumes:
-      - worker-db:/app/apps/worker/data
       # Mount Docker socket so worker can spawn containers
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -120,5 +127,5 @@ services:
 
 volumes:
   redis-data:
-  api-db:
-  worker-db:
+  # Database: Turso (libSQL) - no Docker volume needed
+  # Services connect directly to Turso cloud via DATABASE_URL

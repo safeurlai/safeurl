@@ -51,7 +51,8 @@ function wrapToolWithDebugging<
     execute: async (...args: any[]) => {
       const startTime = Date.now();
       debugLog(`🔧 Tool: ${toolName}`, {
-        args: args.length > 0 ? JSON.stringify(args[0]).substring(0, 100) : "none",
+        args:
+          args.length > 0 ? JSON.stringify(args[0]).substring(0, 100) : "none",
       });
 
       try {
@@ -97,7 +98,7 @@ function extractUrlFromInput(
   input: Parameters<typeof urlSafetyAgent.generate>[0]
 ): string | null {
   const urlRegex = /https?:\/\/[^\s]+/i;
-  
+
   // Helper to extract URL from text
   const extractFromText = (text: string): string | null => {
     const match = text.match(urlRegex);
@@ -163,76 +164,115 @@ export const urlSafetyAnalysisSchema = z.object({
 // Agent Configuration
 // ============================================================================
 
-// ============================================================================
-// OpenRouter Provider Configuration
-// ============================================================================
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-// ============================================================================
-// Agent Configuration
-// ============================================================================
+/**
+ * Configuration for creating a URL Safety Agent
+ */
+export interface UrlSafetyAgentConfig {
+  /**
+   * OpenRouter API key (required)
+   */
+  openRouterApiKey: string;
+  /**
+   * Enable debug logging (default: false)
+   */
+  debugEnabled?: boolean;
+}
 
 /**
- * URL Safety Agent
- * Specialized agent for detecting threats in URLs:
- * - Phishing attempts
- * - Malware distribution
- * - Scam patterns
- * - Suspicious redirects
- * - NSFW/adult content
- * - Content safety
+ * Factory function to create a URL Safety Agent with custom configuration
  *
- * Uses Grok-4.1-Fast (free tier) via OpenRouter for high-quality analysis with
- * excellent tool use capabilities.
+ * @param config - Agent configuration including OpenRouter API key
+ * @returns Configured URL Safety Agent instance
  */
-// Create wrapped tools with timing and debugging
-const debugContentExtractionTool = wrapToolWithDebugging(
-  contentExtractionTool,
-  "content-extraction"
-);
-const debugScreenshotAnalysisTool = wrapToolWithDebugging(
-  screenshotAnalysisTool,
-  "screenshot-analysis"
-);
-const debugReputationCheckTool = wrapToolWithDebugging(
-  reputationCheckTool,
-  "reputation-check"
-);
+export function createUrlSafetyAgent(config: UrlSafetyAgentConfig): Agent {
+  if (!config.openRouterApiKey) {
+    throw new Error("openRouterApiKey is required to create urlSafetyAgent");
+  }
 
-export const urlSafetyAgent = new Agent({
-  name: "url-safety-agent",
-  description:
-    "Detects phishing, malware, scams, NSFW, and suspicious content via visual analysis",
-  instructions: `Visual safety analyst detecting phishing, malware, scams, NSFW, and suspicious content.
+  // Create OpenRouter provider with provided API key
+  const openrouter = createOpenRouter({
+    apiKey: config.openRouterApiKey,
+  });
+
+  // Determine debug state (use config if provided, otherwise check env)
+  const debugEnabled =
+    config.debugEnabled !== undefined ? config.debugEnabled : DEBUG_ENABLED;
+
+  // Create wrapped tools with timing and debugging
+  const debugContentExtractionTool = wrapToolWithDebugging(
+    contentExtractionTool,
+    "content-extraction"
+  );
+  const debugScreenshotAnalysisTool = wrapToolWithDebugging(
+    screenshotAnalysisTool,
+    "screenshot-analysis"
+  );
+  const debugReputationCheckTool = wrapToolWithDebugging(
+    reputationCheckTool,
+    "reputation-check"
+  );
+
+  /**
+   * URL Safety Agent
+   * Specialized agent for detecting threats in URLs:
+   * - Phishing attempts
+   * - Malware distribution
+   * - Scam patterns
+   * - Suspicious redirects
+   * - NSFW/adult content
+   * - Content safety
+   *
+   * Uses Grok-4.1-Fast (free tier) via OpenRouter for high-quality analysis with
+   * excellent tool use capabilities.
+   */
+  return new Agent({
+    name: "url-safety-agent",
+    description:
+      "Detects phishing, malware, scams, NSFW, and suspicious content via visual analysis",
+    instructions: `Visual safety analyst detecting phishing, malware, scams, NSFW, and suspicious content.
 
 Image URLs: If image attached, analyze directly for NSFW/explicit content and threats.
 Workflow: 1) screenshot-analysis (visual), 2) content-extraction (metadata), 3) reputation-check (domain).
 Detect: phishing layouts, fake logins, NSFW imagery, suspicious patterns, malware indicators.
 Be accurate - minimize false positives.`,
-  model: openrouter(IMAGE_AND_TOOLS_MODEL),
-  tools: {
-    contentExtractionTool: debugContentExtractionTool,
-    screenshotAnalysisTool: debugScreenshotAnalysisTool,
-    reputationCheckTool: debugReputationCheckTool,
-  },
-  defaultGenerateOptions: {
-    maxSteps: 10, // Allow agent to use tools iteratively
-    output: urlSafetyAnalysisSchema,
-  },
+    model: openrouter(IMAGE_AND_TOOLS_MODEL),
+    tools: {
+      contentExtractionTool: debugContentExtractionTool,
+      screenshotAnalysisTool: debugScreenshotAnalysisTool,
+      reputationCheckTool: debugReputationCheckTool,
+    },
+    defaultGenerateOptions: {
+      maxSteps: 10, // Allow agent to use tools iteratively
+      output: urlSafetyAnalysisSchema,
+    },
+  });
+}
+
+/**
+ * Default singleton agent instance (for backward compatibility)
+ * Uses OPENROUTER_API_KEY from process.env
+ *
+ * @deprecated Use createUrlSafetyAgent() factory function instead
+ */
+export const urlSafetyAgent = createUrlSafetyAgent({
+  openRouterApiKey: process.env.OPENROUTER_API_KEY || "",
+  debugEnabled: DEBUG_ENABLED,
 });
 
 /**
  * Wrapper function for agent.generate() with debugging enabled
- * Use this instead of calling urlSafetyAgent.generate() directly to get debug logs
+ * Use this instead of calling agent.generate() directly to get debug logs
  * Automatically detects image URLs, takes screenshots pre-model-call, and attaches them to the message
+ *
+ * @param agent - Agent instance to use
+ * @param input - Input messages for the agent
+ * @param options - Optional generation options
  */
 export async function generateWithDebug(
-  input: Parameters<typeof urlSafetyAgent.generate>[0],
-  options?: Parameters<typeof urlSafetyAgent.generate>[1]
-): Promise<ReturnType<typeof urlSafetyAgent.generate>> {
+  agent: Agent,
+  input: Parameters<Agent["generate"]>[0],
+  options?: Parameters<Agent["generate"]>[1]
+): Promise<ReturnType<Agent["generate"]>> {
   const startTime = Date.now();
 
   // Detect image URL
@@ -276,7 +316,8 @@ export async function generateWithDebug(
       // Helper to normalize content to array format
       const normalizeContent = (content: any): any[] => {
         if (Array.isArray(content)) return [...content];
-        if (typeof content === "string") return [{ type: "text", text: content }];
+        if (typeof content === "string")
+          return [{ type: "text", text: content }];
         return [content];
       };
 
@@ -284,8 +325,13 @@ export async function generateWithDebug(
       const addImageToMessages = (messages: any[]): any[] => {
         const msgs = [...messages];
         const lastMsg = msgs[msgs.length - 1];
-        
-        if (lastMsg && typeof lastMsg === "object" && "role" in lastMsg && lastMsg.role) {
+
+        if (
+          lastMsg &&
+          typeof lastMsg === "object" &&
+          "role" in lastMsg &&
+          lastMsg.role
+        ) {
           const content = normalizeContent((lastMsg as any).content);
           content.push(imageAttachment);
           msgs[msgs.length - 1] = { ...lastMsg, content };
@@ -296,14 +342,19 @@ export async function generateWithDebug(
       };
 
       if (typeof input === "string") {
-        enhancedInput = [{
-          role: "user",
-          content: [{ type: "text", text: input }, imageAttachment],
-        }] as any;
+        enhancedInput = [
+          {
+            role: "user",
+            content: [{ type: "text", text: input }, imageAttachment],
+          },
+        ] as any;
       } else if (Array.isArray(input)) {
         enhancedInput = addImageToMessages(input) as any;
       } else if (typeof input === "object" && input && "messages" in input) {
-        enhancedInput = { ...input, messages: addImageToMessages((input as any).messages) } as any;
+        enhancedInput = {
+          ...input,
+          messages: addImageToMessages((input as any).messages),
+        } as any;
       }
 
       debugLog("📎 Screenshot attached to message");
@@ -341,7 +392,7 @@ export async function generateWithDebug(
     let stepCount = 0;
 
     // Wrap with step tracking if the agent supports it
-    const result = await urlSafetyAgent.generate(enhancedInput, {
+    const result = await agent.generate(enhancedInput, {
       ...options,
       onStepFinish: (step: any) => {
         stepCount++;

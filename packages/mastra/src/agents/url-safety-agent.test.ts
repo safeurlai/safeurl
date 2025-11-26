@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import {
-  urlSafetyAgent,
+  createUrlSafetyAgent,
   urlSafetyAnalysisSchema,
   generateWithDebug,
 } from "./url-safety-agent";
@@ -13,12 +13,28 @@ import {
 // - Image URL detection and screenshot-analysis tool usage
 
 test("should analyze image URL and use screenshot-analysis tool", async () => {
+  // Get OpenRouter API key from environment
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  if (!openRouterApiKey) {
+    throw new Error(
+      "OPENROUTER_API_KEY environment variable is required for tests"
+    );
+  }
+
+  // Create agent instance using factory
+  const agent = createUrlSafetyAgent({
+    openRouterApiKey,
+    debugEnabled: true,
+  });
+
   const imageUrl = "https://i.4cdn.org/cgl/1683919741567583.jpg";
 
   // Use generateWithDebug for enhanced debugging and automatic image URL detection
   // generateWithDebug will automatically detect image URLs and enhance the prompt
   // to ensure screenshot-analysis tool is used
+  // Note: generateWithDebug now requires agent as first parameter
   const result = await generateWithDebug(
+    agent,
     `Analyze this image URL for NSFW content: ${imageUrl}`,
     {
       structuredOutput: {

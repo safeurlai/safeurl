@@ -1,6 +1,7 @@
 import { Result, ok, err } from "@safeurl/core/result";
 import { wrapDbQuery } from "@safeurl/core/result";
-import { db, scanJobs } from "@safeurl/db";
+import { db } from "../lib/db";
+import { scanJobs } from "@safeurl/db";
 import { eq, and } from "drizzle-orm";
 import { validateStateTransition } from "@safeurl/core/schemas";
 import type { ScanJobState } from "@safeurl/core/schemas";

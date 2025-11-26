@@ -12,6 +12,12 @@
  *   JOB_ID=<uuid> SCAN_URL=<url> bun run src/index.ts
  */
 
+// Disable Mastra telemetry warnings (we're running outside Mastra server environment)
+// Setting this to true tells Mastra that telemetry is handled externally
+if (typeof globalThis !== "undefined") {
+  (globalThis as any).___MASTRA_TELEMETRY___ = true;
+}
+
 import { fetchUrl } from "./fetch/url-fetcher";
 import { analyzeWithAgent } from "./analysis/agent";
 import { createAuditLog } from "./audit/logger";

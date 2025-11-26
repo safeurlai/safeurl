@@ -8,6 +8,10 @@
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "start": "bun run dist/index.js",
+    "test": "bun test",
+    "test:worker": "bun test src/worker.test.ts",
+    "test:quick": "bun test src/worker.test.ts --timeout 20000",
+    "test:manual": "bun run test-worker-manual.ts",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'Linting not configured yet'"
   },

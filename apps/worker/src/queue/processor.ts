@@ -1,7 +1,10 @@
 import { Worker, Job } from "bullmq";
 import Redis from "ioredis";
-import { Result } from "@safeurl/core/result";
-import { transitionToFetching, transitionToFailed, getJobWithVersion } from "../state/transitions";
+import {
+  transitionToFetching,
+  transitionToFailed,
+  getJobWithVersion,
+} from "../state/transitions";
 import { spawnFetcherContainer } from "../container/manager";
 import { processScanResults } from "../process/results";
 
@@ -54,33 +57,97 @@ export function createWorker(): Worker<ScanJobPayload> {
         if (transitionResult.error.type === "version_conflict") {
           throw new Error(`Job ${jobId} was already claimed by another worker`);
         }
-        throw new Error(`Failed to transition to FETCHING: ${transitionResult.error.message}`);
+        throw new Error(
+          `Failed to transition to FETCHING: ${transitionResult.error.message}`
+        );
       }
 
       // Step 2: Spawn fetcher container
       const containerResult = await spawnFetcherContainer(jobId, url);
       if (containerResult.isErr()) {
+        const containerError = containerResult.error;
+
+        // Log detailed error information for debugging
+        console.error(
+          `[CONTAINER ERROR] Job ${jobId} - Container execution failed:`,
+          {
+            errorType: containerError.type,
+            errorMessage: containerError.message,
+            details: containerError.details,
+            // Extract stdout/stderr from details if available
+            stdout:
+              containerError.details &&
+              typeof containerError.details === "object" &&
+              "stdout" in containerError.details
+                ? containerError.details.stdout
+                : undefined,
+            stderr:
+              containerError.details &&
+              typeof containerError.details === "object" &&
+              "stderr" in containerError.details
+                ? containerError.details.stderr
+                : undefined,
+            exitCode:
+              containerError.details &&
+              typeof containerError.details === "object" &&
+              "exitCode" in containerError.details
+                ? containerError.details.exitCode
+                : undefined,
+          }
+        );
+
         // Transition to FAILED state
         const updatedVersionResult = await getJobWithVersion(jobId);
         if (updatedVersionResult.isOk()) {
           await transitionToFailed(jobId, updatedVersionResult.value.version);
         }
 
+        // Build detailed error message
+        let errorMessage = `Container execution failed: ${containerError.message}`;
+
+        // Add stdout/stderr to error message if available
+        if (
+          containerError.details &&
+          typeof containerError.details === "object"
+        ) {
+          const details = containerError.details as Record<string, unknown>;
+          if (
+            details.stdout &&
+            typeof details.stdout === "string" &&
+            details.stdout.trim()
+          ) {
+            errorMessage += `\n\nSTDOUT:\n${details.stdout}`;
+          }
+          if (
+            details.stderr &&
+            typeof details.stderr === "string" &&
+            details.stderr.trim()
+          ) {
+            errorMessage += `\n\nSTDERR:\n${details.stderr}`;
+          }
+          if (details.exitCode !== undefined) {
+            errorMessage += `\n\nExit Code: ${details.exitCode}`;
+          }
+        }
+
         // Determine if this is a retryable error
-        const isRetryable = 
-          containerResult.error.type === "timeout" ||
-          containerResult.error.type === "docker_error";
+        const isRetryable =
+          containerError.type === "timeout" ||
+          containerError.type === "docker_error";
 
         if (isRetryable) {
-          throw new Error(`Container execution failed: ${containerResult.error.message}`);
+          throw new Error(errorMessage);
         } else {
           // Non-retryable errors (validation, parse errors) should fail immediately
-          throw new Error(`Container execution failed: ${containerResult.error.message}`);
+          throw new Error(errorMessage);
         }
       }
 
       // Step 3: Process results (store, audit log, transition to COMPLETED)
-      const processResult = await processScanResults(jobId, containerResult.value);
+      const processResult = await processScanResults(
+        jobId,
+        containerResult.value
+      );
       if (processResult.isErr()) {
         // Transition to FAILED state
         const updatedVersionResult = await getJobWithVersion(jobId);
@@ -88,7 +155,9 @@ export function createWorker(): Worker<ScanJobPayload> {
           await transitionToFailed(jobId, updatedVersionResult.value.version);
         }
 
-        throw new Error(`Failed to process results: ${processResult.error.message}`);
+        throw new Error(
+          `Failed to process results: ${processResult.error.message}`
+        );
       }
 
       console.log(`Successfully completed scan job ${jobId}`);
@@ -113,7 +182,13 @@ export function createWorker(): Worker<ScanJobPayload> {
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`Job ${job?.id} failed:`, err.message);
+    console.error(`Job ${job?.id} failed:`, {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      // Include job data if available
+      jobData: job?.data,
+    });
   });
 
   worker.on("error", (err) => {
@@ -122,4 +197,3 @@ export function createWorker(): Worker<ScanJobPayload> {
 
   return worker;
 }
-

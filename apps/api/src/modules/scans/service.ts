@@ -1,7 +1,7 @@
 import { Result, ok, err } from "@safeurl/core/result";
 import { wrapDbQuery } from "@safeurl/core/result";
+import { db, dbInstance } from "../../lib/db";
 import {
-  db,
   scanJobs,
   wallets,
   scanResults,
@@ -20,6 +20,7 @@ async function ensureUserExists(userId: string): Promise<void> {
   try {
     // Try to insert user, ignore if already exists (SQLite specific)
     await executeRawSQL(
+      dbInstance,
       sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`
     );
   } catch (error) {

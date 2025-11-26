@@ -1,6 +1,7 @@
 import { Result, ResultAsync, ok, err } from "@safeurl/core/result";
 import { wrapDbQuery, type DatabaseError } from "@safeurl/core/result";
-import { db, wallets, users, executeRawSQL } from "@safeurl/db";
+import { db, dbInstance } from "../../lib/db";
+import { wallets, users, executeRawSQL } from "@safeurl/db";
 import { eq, sql } from "drizzle-orm";
 import type { PurchaseCreditsRequest } from "./schemas";
 
@@ -12,6 +13,7 @@ async function ensureUserExists(userId: string): Promise<void> {
   try {
     // Try to insert user, ignore if already exists (SQLite specific)
     await executeRawSQL(
+      dbInstance,
       sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`
     );
   } catch (error) {

@@ -68,14 +68,31 @@ export async function spawnFetcherContainer(
     }
 
     // Create container configuration
+    // Note: AutoRemove is disabled to prevent race condition when retrieving logs
+    // We manually remove the container after getting logs
+    const containerEnv = [
+      `JOB_ID=${jobId}`,
+      `SCAN_URL=${url}`,
+    ];
+
+    // Add OPENROUTER_API_KEY if available (required for Mastra agent)
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (openRouterApiKey) {
+      containerEnv.push(`OPENROUTER_API_KEY=${openRouterApiKey}`);
+    } else {
+      console.warn(
+        "OPENROUTER_API_KEY not set - Mastra agent may fail to execute"
+      );
+    }
+
     const containerConfig: Docker.ContainerCreateOptions = {
       Image: fetcherImage,
-      Env: [`JOB_ID=${jobId}`, `SCAN_URL=${url}`],
+      Env: containerEnv,
       HostConfig: {
         Memory: memoryLimitMB * 1024 * 1024, // Convert MB to bytes
         CpuQuota: Math.floor(cpuLimit * 100000), // CPU quota in microseconds
         CpuPeriod: 100000, // CPU period in microseconds
-        AutoRemove: true, // --rm flag
+        AutoRemove: false, // Disabled to prevent race condition - we remove manually after getting logs
         NetworkMode: "bridge", // Network isolation
       },
       AttachStdout: true,
@@ -101,16 +118,54 @@ export async function spawnFetcherContainer(
 
     let exitCode = 0;
     let timeoutOccurred = false;
+    let logs: any = null;
 
     try {
       const waitResult = await Promise.race([waitPromise, timeoutPromise]);
       exitCode = waitResult.StatusCode || 0;
+      
+      // Get logs immediately after container exits (before AutoRemove kicks in)
+      try {
+        logs = await container.logs({
+          stdout: true,
+          stderr: true,
+          timestamps: false,
+        });
+      } catch (logError: any) {
+        // If we can't get logs (container already removed), log warning but continue
+        const errorMsg = logError?.message?.toLowerCase() || "";
+        if (errorMsg.includes("dead") || errorMsg.includes("removed") || errorMsg.includes("409")) {
+          console.warn("Could not retrieve logs: container was already removed");
+          logs = Buffer.from(""); // Use empty buffer as fallback
+        } else {
+          throw logError;
+        }
+      }
     } catch (error) {
       if (
         error instanceof Error &&
         error.message === "Container execution timeout"
       ) {
         timeoutOccurred = true;
+        
+        // Try to get logs before killing the container
+        try {
+          logs = await container.logs({
+            stdout: true,
+            stderr: true,
+            timestamps: false,
+          });
+        } catch (logError: any) {
+          const errorMsg = logError?.message?.toLowerCase() || "";
+          if (errorMsg.includes("dead") || errorMsg.includes("removed") || errorMsg.includes("409")) {
+            console.warn("Could not retrieve logs before timeout kill: container was already removed");
+            logs = Buffer.from("");
+          } else {
+            // If we can't get logs, continue anyway
+            logs = Buffer.from("");
+          }
+        }
+        
         // Kill the container
         try {
           await container.kill();
@@ -122,12 +177,10 @@ export async function spawnFetcherContainer(
       }
     }
 
-    // Get container logs
-    const logs = await container.logs({
-      stdout: true,
-      stderr: true,
-      timestamps: false,
-    });
+    // Ensure we have logs buffer
+    if (!logs) {
+      logs = Buffer.from("");
+    }
 
     const logBuffer = Buffer.isBuffer(logs) ? logs : Buffer.from(logs);
 
@@ -165,12 +218,15 @@ export async function spawnFetcherContainer(
       stdout = logBuffer.toString("utf-8");
     }
 
-    // Clean up container (should be auto-removed, but ensure cleanup)
+    // Clean up container (manual removal since AutoRemove is disabled)
     try {
       await container.remove({ force: true });
-    } catch (removeError) {
+    } catch (removeError: any) {
       // Container might already be removed, ignore error
-      console.warn("Container removal warning:", removeError);
+      const errorMsg = removeError?.message?.toLowerCase() || "";
+      if (!errorMsg.includes("no such container")) {
+        console.warn("Container removal warning:", removeError);
+      }
     }
 
     // Handle timeout
