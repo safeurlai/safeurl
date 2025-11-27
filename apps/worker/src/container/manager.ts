@@ -70,19 +70,20 @@ export async function spawnFetcherContainer(
     // Create container configuration
     // Note: AutoRemove is disabled to prevent race condition when retrieving logs
     // We manually remove the container after getting logs
-    const containerEnv = [
-      `JOB_ID=${jobId}`,
-      `SCAN_URL=${url}`,
-    ];
+    const containerEnv = [`JOB_ID=${jobId}`, `SCAN_URL=${url}`];
 
     // Add OPENROUTER_API_KEY if available (required for Mastra agent)
     const openRouterApiKey = process.env.OPENROUTER_API_KEY;
     if (openRouterApiKey) {
       containerEnv.push(`OPENROUTER_API_KEY=${openRouterApiKey}`);
     } else {
-      console.warn(
-        "OPENROUTER_API_KEY not set - Mastra agent may fail to execute"
-      );
+      const errorMsg =
+        "OPENROUTER_API_KEY environment variable is not set. " +
+        "This is required for Mastra agent execution. " +
+        "Get your API key from https://openrouter.ai/keys and set it in your environment or .env file before running tests or the worker.";
+      console.error(`[CONTAINER ERROR] ${errorMsg}`);
+      // Don't fail here - let the container fail with a clear error message
+      // This allows tests to run and fail gracefully
     }
 
     const containerConfig: Docker.ContainerCreateOptions = {
@@ -123,7 +124,7 @@ export async function spawnFetcherContainer(
     try {
       const waitResult = await Promise.race([waitPromise, timeoutPromise]);
       exitCode = waitResult.StatusCode || 0;
-      
+
       // Get logs immediately after container exits (before AutoRemove kicks in)
       try {
         logs = await container.logs({
@@ -134,8 +135,14 @@ export async function spawnFetcherContainer(
       } catch (logError: any) {
         // If we can't get logs (container already removed), log warning but continue
         const errorMsg = logError?.message?.toLowerCase() || "";
-        if (errorMsg.includes("dead") || errorMsg.includes("removed") || errorMsg.includes("409")) {
-          console.warn("Could not retrieve logs: container was already removed");
+        if (
+          errorMsg.includes("dead") ||
+          errorMsg.includes("removed") ||
+          errorMsg.includes("409")
+        ) {
+          console.warn(
+            "Could not retrieve logs: container was already removed"
+          );
           logs = Buffer.from(""); // Use empty buffer as fallback
         } else {
           throw logError;
@@ -147,7 +154,7 @@ export async function spawnFetcherContainer(
         error.message === "Container execution timeout"
       ) {
         timeoutOccurred = true;
-        
+
         // Try to get logs before killing the container
         try {
           logs = await container.logs({
@@ -157,15 +164,21 @@ export async function spawnFetcherContainer(
           });
         } catch (logError: any) {
           const errorMsg = logError?.message?.toLowerCase() || "";
-          if (errorMsg.includes("dead") || errorMsg.includes("removed") || errorMsg.includes("409")) {
-            console.warn("Could not retrieve logs before timeout kill: container was already removed");
+          if (
+            errorMsg.includes("dead") ||
+            errorMsg.includes("removed") ||
+            errorMsg.includes("409")
+          ) {
+            console.warn(
+              "Could not retrieve logs before timeout kill: container was already removed"
+            );
             logs = Buffer.from("");
           } else {
             // If we can't get logs, continue anyway
             logs = Buffer.from("");
           }
         }
-        
+
         // Kill the container
         try {
           await container.kill();

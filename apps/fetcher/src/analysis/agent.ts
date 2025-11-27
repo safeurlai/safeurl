@@ -1,19 +1,7 @@
-/**
- * Mastra Agent Analysis Module
- * 
- * Invokes Mastra agent to analyze URL metadata and return structured results.
- * Explicitly excludes content body - only passes metadata and hash.
- */
-
-import { analyzeUrl, type UrlAnalysisInput, type UrlAnalysisOutput } from "@safeurl/mastra";
+import { analyzeUrl, type UrlAnalysisInput } from "@safeurl/mastra";
 import { Result, err, ok } from "@safeurl/core";
 import { scanResultSchema, type RiskCategory } from "@safeurl/core";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-// Re-export types from mastra package for convenience
 export type AgentAnalysisInput = UrlAnalysisInput;
 
 export interface AgentAnalysisResult {
@@ -31,37 +19,36 @@ export interface AgentAnalysisError {
   message: string;
 }
 
-// ============================================================================
-// Agent Analysis
-// ============================================================================
-
-/**
- * Analyzes URL metadata using Mastra agent
- * 
- * @param input - Analysis input (metadata only, no content)
- * @returns Result with analysis data
- */
 export async function analyzeWithAgent(
   input: AgentAnalysisInput
 ): Promise<Result<AgentAnalysisResult, AgentAnalysisError>> {
-  // Get OpenRouter API key from environment
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
     return err({
       type: "agent",
-      message: "OPENROUTER_API_KEY environment variable is required",
+      message:
+        "OPENROUTER_API_KEY environment variable is required. Get your API key from https://openrouter.ai/keys",
     });
   }
 
-  // Use high-level analysis function from mastra package
+  if (
+    !openRouterApiKey.startsWith("sk-or-v1-") &&
+    !openRouterApiKey.startsWith("sk-or-")
+  ) {
+    return err({
+      type: "agent",
+      message:
+        "Invalid OPENROUTER_API_KEY format. OpenRouter API keys should start with 'sk-or-v1-' or 'sk-or-'. Get your API key from https://openrouter.ai/keys",
+    });
+  }
+
   const analysisResult = await analyzeUrl(input, {
     openRouterApiKey,
-    debugEnabled: process.env.DEBUG_AGENT === "true",
   });
 
   if (analysisResult.isErr()) {
-    // Map mastra error types to fetcher error types
     const error = analysisResult.error;
+
     return err({
       type: error.type === "config" ? "agent" : error.type,
       message: error.message,
@@ -70,7 +57,6 @@ export async function analyzeWithAgent(
 
   const analysis = analysisResult.value;
 
-  // Validate against schema (includes contentHash, httpStatus, etc. from input)
   const validation = scanResultSchema.safeParse({
     riskScore: analysis.riskScore,
     categories: analysis.categories,
@@ -102,4 +88,3 @@ export async function analyzeWithAgent(
     analysisMetadata: analysis.analysisMetadata,
   });
 }
-

@@ -8,7 +8,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=0
 
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile || bun install || true; \
-    test -d node_modules && test -d packages/core && test -d packages/db
+    test -d node_modules && test -d packages/core && test -d packages/db && test -d packages/mastra
 
 FROM oven/bun:1.3.3-slim AS runtime
 WORKDIR /app

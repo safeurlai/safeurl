@@ -24,6 +24,17 @@ WORKDIR /app/apps/fetcher
 
 # Fetcher runs as ephemeral container - no persistent storage needed
 # Container will be removed after execution with --rm flag
+#
+# Required environment variables (must be passed at runtime):
+# - JOB_ID: Job ID for tracking
+# - SCAN_URL: URL to scan
+# - OPENROUTER_API_KEY: OpenRouter API key (required for Mastra agent analysis)
+#   Get your API key from: https://openrouter.ai/keys
+#
+# Optional environment variables:
+# - FETCH_TIMEOUT_MS: Fetch timeout in milliseconds (default: 30000)
+# - MAX_REDIRECT_DEPTH: Maximum redirect depth (default: 5)
+# - DEBUG_AGENT: Enable debug logging (set to "true" to enable)
 
 CMD ["bun", "run", "src/index.ts"]
 

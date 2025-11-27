@@ -1,32 +1,12 @@
 #!/usr/bin/env bun
 
-/**
- * Fetcher Container Entry Point
- *
- * Ephemeral container that safely fetches URLs, performs analysis using Mastra agents,
- * and returns results without persisting any content.
- *
- * Usage:
- *   bun run src/index.ts --job-id <uuid> --url <url>
- *   or via environment variables:
- *   JOB_ID=<uuid> SCAN_URL=<url> bun run src/index.ts
- */
-
-// Disable Mastra telemetry warnings (we're running outside Mastra server environment)
-// Setting this to true tells Mastra that telemetry is handled externally
-if (typeof globalThis !== "undefined") {
-  (globalThis as any).___MASTRA_TELEMETRY___ = true;
-}
+import "./instrumentation";
 
 import { fetchUrl } from "./fetch/url-fetcher";
 import { analyzeWithAgent } from "./analysis/agent";
 import { createAuditLog } from "./audit/logger";
 import { Result, err, ok } from "@safeurl/core";
 import { scanResultSchema } from "@safeurl/core";
-
-// ============================================================================
-// Configuration
-// ============================================================================
 
 interface FetcherConfig {
   jobId: string;
@@ -35,11 +15,7 @@ interface FetcherConfig {
   maxRedirectDepth: number;
 }
 
-/**
- * Parse command-line arguments and environment variables
- */
 function parseConfig(): Result<FetcherConfig, string> {
-  // Parse command-line arguments
   const args = process.argv.slice(2);
   const argMap: Record<string, string> = {};
 
@@ -51,7 +27,6 @@ function parseConfig(): Result<FetcherConfig, string> {
     }
   }
 
-  // Get values from args or environment variables
   const jobId = argMap.jobId || argMap["job-id"] || process.env.JOB_ID;
   const url = argMap.url || process.env.SCAN_URL;
   const fetchTimeoutMs = parseInt(
@@ -87,21 +62,16 @@ function parseConfig(): Result<FetcherConfig, string> {
   });
 }
 
-/**
- * Main execution function
- */
 async function main() {
-  // Parse configuration
   const configResult = parseConfig();
   if (configResult.isErr()) {
-    console.error(JSON.stringify({ error: configResult.error }));
+    console.log(JSON.stringify({ error: configResult.error }));
     process.exit(1);
   }
 
   const config = configResult.value;
 
   try {
-    // Step 1: Fetch URL safely
     const fetchResult = await fetchUrl(config.url, {
       timeoutMs: config.fetchTimeoutMs,
       maxRedirectDepth: config.maxRedirectDepth,
@@ -123,7 +93,6 @@ async function main() {
 
     const fetchData = fetchResult.value;
 
-    // Step 2: Analyze with Mastra agent
     const analysisResult = await analyzeWithAgent({
       url: config.url,
       contentHash: fetchData.contentHash,
@@ -149,7 +118,6 @@ async function main() {
 
     const analysis = analysisResult.value;
 
-    // Step 3: Create audit log entry
     const auditLogResult = await createAuditLog({
       scanJobId: config.jobId,
       urlAccessed: config.url,
@@ -164,7 +132,6 @@ async function main() {
       },
     });
 
-    // Audit log failure is non-fatal, but we should log it
     if (auditLogResult.isErr()) {
       console.error(
         JSON.stringify({
@@ -174,7 +141,6 @@ async function main() {
       );
     }
 
-    // Step 4: Format and output result
     const result = {
       jobId: config.jobId,
       success: true,
@@ -193,7 +159,6 @@ async function main() {
       },
     };
 
-    // Validate result against schema
     const validation = scanResultSchema.safeParse(result.result);
     if (!validation.success) {
       console.error(
@@ -205,13 +170,9 @@ async function main() {
       process.exit(1);
     }
 
-    // Output JSON to stdout
     console.log(JSON.stringify(result));
-
-    // Exit successfully
     process.exit(0);
   } catch (error) {
-    // Unexpected error
     const output = {
       jobId: config.jobId,
       success: false,
@@ -228,7 +189,6 @@ async function main() {
   }
 }
 
-// Run main function
 main().catch((error) => {
   console.error(JSON.stringify({ error: error.message }));
   process.exit(1);

@@ -5,13 +5,6 @@ import {
   generateWithDebug,
 } from "./url-safety-agent";
 
-// Enable debugging by setting DEBUG_AGENT=true or running in non-production mode
-// The tools are automatically wrapped with debugging, so you'll see logs for:
-// - Tool call start/completion/failure with timing
-// - Agent execution start/completion/failure
-// - Step-by-step agent progress
-// - Image URL detection and screenshot-analysis tool usage
-
 test("should analyze image URL and use screenshot-analysis tool", async () => {
   // Get OpenRouter API key from environment
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
@@ -24,15 +17,13 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
   // Create agent instance using factory
   const agent = createUrlSafetyAgent({
     openRouterApiKey,
-    debugEnabled: true,
   });
 
   const imageUrl = "https://i.4cdn.org/cgl/1683919741567583.jpg";
 
-  // Use generateWithDebug for enhanced debugging and automatic image URL detection
+  // Use generateWithDebug for automatic image URL detection
   // generateWithDebug will automatically detect image URLs and enhance the prompt
   // to ensure screenshot-analysis tool is used
-  // Note: generateWithDebug now requires agent as first parameter
   const result = await generateWithDebug(
     agent,
     `Analyze this image URL for NSFW content: ${imageUrl}`,

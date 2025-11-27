@@ -2,7 +2,7 @@ services:
   # Database: Turso (libSQL) - accessed directly via workspace package
   # No Docker service needed - services connect to Turso cloud via DATABASE_URL
   # The @safeurl/db workspace package handles database connections
-  
+
   redis:
     image: redis:7-alpine
     ports:
@@ -57,18 +57,53 @@ services:
       retries: 5
       start_period: 10s
 
+  fetcher:
+    build:
+      context: .
+      dockerfile: apps/fetcher/Dockerfile
+    image: safeurl-fetcher:latest
+    # Fetcher is an ephemeral container spawned by worker, not a long-running service
+    # This service exists only to build the image - it exits immediately after build
+    # Load environment variables from .env file for documentation/completeness
+    # (Worker passes these to fetcher containers at runtime)
+    env_file:
+      - .env
+    environment:
+      # OpenRouter API Key - required for Mastra agent analysis
+      # Get your API key from: https://openrouter.ai/keys
+      # Set OPENROUTER_API_KEY in your .env file
+      # Worker will pass this to fetcher containers when spawning them
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # These are passed by worker at runtime, but documented here for reference:
+      # - JOB_ID (passed by worker)
+      # - SCAN_URL (passed by worker)
+      # - FETCH_TIMEOUT_MS (optional, defaults to 30000)
+      # - MAX_REDIRECT_DEPTH (optional, defaults to 5)
+    restart: "no"
+    # Dummy command that exits immediately - image is built but service doesn't run
+    command: ["echo", "Fetcher image built successfully"]
+
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
     image: safeurl/worker
+    # Load environment variables from .env file (if it exists)
+    # Docker Compose also automatically loads .env from project root
+    env_file:
+      - .env
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       # Database: Turso (libSQL) - accessed via workspace package
-      # Reads from .env file: DATABASE_URL or TURSO_CONNECTION_URL
-      - DATABASE_URL=${DATABASE_URL:-${TURSO_CONNECTION_URL:-}}
-      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN:-${TURSO_AUTH_TOKEN:-}}
+      # Worker expects TURSO_CONNECTION_URL and TURSO_AUTH_TOKEN from .env file
+      - TURSO_CONNECTION_URL=${TURSO_CONNECTION_URL:-}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN:-}
+      # OpenRouter API Key - required for Mastra agent analysis in fetcher containers
+      # Worker passes this to fetcher containers at runtime
+      # Get your API key from: https://openrouter.ai/keys
+      # Set OPENROUTER_API_KEY in your .env file
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - DOCKER_SOCKET_PATH=/var/run/docker.sock
       - FETCHER_IMAGE=safeurl-fetcher:latest
       - WORKER_CONCURRENCY=5
@@ -84,6 +119,8 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+      fetcher:
+        condition: service_started
     restart: unless-stopped
 
   dashboard:

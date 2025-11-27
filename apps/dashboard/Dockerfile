@@ -8,7 +8,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=0
 
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile || bun install || true; \
-    test -d node_modules && test -d packages/core && test -d packages/db
+    test -d node_modules && test -d packages/core
 
 FROM oven/bun:1.3.3-slim AS builder
 WORKDIR /app
@@ -17,7 +17,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json /app/bun.lock ./
 COPY --from=deps /app/tsconfig.json* ./
 COPY --from=deps /app/packages/core ./packages/core
-COPY --from=deps /app/packages/db ./packages/db
 COPY --from=deps /app/apps/dashboard ./apps/dashboard
 
 WORKDIR /app/apps/dashboard
@@ -32,7 +31,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json /app/bun.lock ./
 COPY --from=deps /app/tsconfig.json* ./
 COPY --from=deps /app/packages/core ./packages/core
-COPY --from=deps /app/packages/db ./packages/db
 COPY --from=builder /app/apps/dashboard ./apps/dashboard
 
 WORKDIR /app/apps/dashboard

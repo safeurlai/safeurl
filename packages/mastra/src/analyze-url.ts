@@ -1,25 +1,13 @@
-/**
- * High-level URL analysis function
- *
- * Provides a simplified API for analyzing URLs using the Mastra agent.
- * Handles prompt formatting, output mapping, and error handling.
- */
-
 import { Result, err, ok } from "@safeurl/core";
 import type { RiskCategory } from "@safeurl/core";
 import {
   createUrlSafetyAgent,
   type UrlSafetyAgentConfig,
+  generateWithDebug,
+  urlSafetyAnalysisSchema,
 } from "./agents/url-safety-agent";
 import type { Agent } from "@mastra/core/agent";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Input for URL analysis
- */
 export interface UrlAnalysisInput {
   url: string;
   contentHash: string;
@@ -34,9 +22,6 @@ export interface UrlAnalysisInput {
   };
 }
 
-/**
- * Output from URL analysis
- */
 export interface UrlAnalysisOutput {
   riskScore: number;
   categories: RiskCategory[];
@@ -47,28 +32,18 @@ export interface UrlAnalysisOutput {
   analysisMetadata?: Record<string, unknown>;
 }
 
-/**
- * Analysis error types
- */
 export interface UrlAnalysisError {
   type: "agent" | "validation" | "timeout" | "parse" | "config";
   message: string;
 }
 
-// ============================================================================
-// Category Mapping
-// ============================================================================
-
-/**
- * Maps agent output categories to core RiskCategory enum
- */
 const AGENT_TO_CORE_CATEGORIES: Record<string, RiskCategory> = {
   phishing: "phishing",
   malware: "malware",
   scam: "scam",
   suspicious: "suspicious",
   nsfw: "adult_content",
-  safe: "other", // "safe" maps to "other" since it's not a risk category
+  safe: "other",
 };
 
 const VALID_RISK_CATEGORIES: RiskCategory[] = [
@@ -84,9 +59,6 @@ const VALID_RISK_CATEGORIES: RiskCategory[] = [
   "other",
 ];
 
-/**
- * Maps agent category strings to core RiskCategory enum
- */
 function mapCategories(agentCategories: string[]): RiskCategory[] {
   return agentCategories
     .map((cat) => AGENT_TO_CORE_CATEGORIES[cat.toLowerCase()])
@@ -96,13 +68,6 @@ function mapCategories(agentCategories: string[]): RiskCategory[] {
     );
 }
 
-// ============================================================================
-// Prompt Formatting
-// ============================================================================
-
-/**
- * Formats URL metadata into a prompt for the agent
- */
 function formatAnalysisPrompt(input: UrlAnalysisInput): string {
   return `Analyze this URL for safety threats. Here's the metadata:
 
@@ -120,13 +85,6 @@ Use the available tools (content-extraction, screenshot-analysis, reputation-che
 to gather additional information if needed.`;
 }
 
-// ============================================================================
-// Output Mapping
-// ============================================================================
-
-/**
- * Maps agent output to UrlAnalysisOutput format
- */
 function mapAgentOutput(
   agentOutput: unknown,
   agentResult: Awaited<ReturnType<Agent["generate"]>>
@@ -165,30 +123,11 @@ function mapAgentOutput(
   };
 }
 
-// ============================================================================
-// High-Level Analysis Function
-// ============================================================================
-
-/**
- * Analyzes a URL using the Mastra agent
- *
- * This is a high-level convenience function that:
- * - Creates an agent instance with the provided config
- * - Formats the prompt from metadata
- * - Invokes the agent
- * - Maps the output to the expected format
- * - Handles errors appropriately
- *
- * @param input - URL metadata to analyze
- * @param config - Agent configuration (API key, debug settings, etc.)
- * @returns Result with analysis output or error
- */
 export async function analyzeUrl(
   input: UrlAnalysisInput,
   config: UrlSafetyAgentConfig
 ): Promise<Result<UrlAnalysisOutput, UrlAnalysisError>> {
   try {
-    // Validate config
     if (!config.openRouterApiKey) {
       return err({
         type: "config",
@@ -196,23 +135,45 @@ export async function analyzeUrl(
       });
     }
 
-    // Create agent instance
     const agent = createUrlSafetyAgent(config);
-
-    // Format prompt
     const prompt = formatAnalysisPrompt(input);
 
-    // Invoke agent (Mastra agent.generate accepts messages array directly)
-    const agentResult = await agent.generate([
-      {
-        role: "user",
-        content: prompt,
-      },
-    ]);
+    let agentResult: any;
+    try {
+      agentResult = await generateWithDebug(
+        agent,
+        [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        {
+          structuredOutput: {
+            schema: urlSafetyAnalysisSchema,
+          },
+        }
+      );
+    } catch (generateError: any) {
+      const errorMessage = String(generateError?.message || generateError);
+      if (
+        errorMessage.includes("Invalid URL") ||
+        errorMessage.includes("Error saving memory")
+      ) {
+        if (generateError?.result) {
+          agentResult = generateError.result;
+        } else if (generateError?.object || generateError?.output) {
+          agentResult = generateError;
+        } else {
+          throw generateError;
+        }
+      } else {
+        throw generateError;
+      }
+    }
 
-    // Extract structured output (Mastra uses 'object' property for structured output)
     const structuredOutput =
-      (agentResult as any).object || (agentResult as any).output;
+      (agentResult as any)?.object || (agentResult as any)?.output;
     if (!structuredOutput) {
       return err({
         type: "agent",
@@ -220,12 +181,9 @@ export async function analyzeUrl(
       });
     }
 
-    // Map output to expected format
     const analysis = mapAgentOutput(structuredOutput, agentResult);
-
     return ok(analysis);
   } catch (error) {
-    // Handle timeout errors
     if (
       error instanceof Error &&
       (error.message.includes("timeout") || error.message.includes("aborted"))
@@ -236,7 +194,6 @@ export async function analyzeUrl(
       });
     }
 
-    // Handle parsing errors
     if (error instanceof Error && error.message.includes("parse")) {
       return err({
         type: "parse",
@@ -244,7 +201,6 @@ export async function analyzeUrl(
       });
     }
 
-    // Generic agent error
     return err({
       type: "agent",
       message: `Agent analysis failed: ${

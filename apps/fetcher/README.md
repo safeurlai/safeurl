@@ -48,8 +48,21 @@ JOB_ID=<uuid> SCAN_URL=<url> FETCH_TIMEOUT_MS=30000 bun run src/index.ts
 docker run --rm \
   -e JOB_ID=<uuid> \
   -e SCAN_URL=<url> \
+  -e OPENROUTER_API_KEY=<your-api-key> \
   safeurl/fetcher:latest
 ```
+
+**Required Environment Variables:**
+- `JOB_ID`: Job ID for tracking
+- `SCAN_URL`: URL to scan
+- `OPENROUTER_API_KEY`: OpenRouter API key (required for Mastra agent analysis)
+  - Get your API key from: https://openrouter.ai/keys
+  - Keys should start with `sk-or-v1-` or `sk-or-`
+
+**Optional Environment Variables:**
+- `FETCH_TIMEOUT_MS`: Fetch timeout in milliseconds (default: 30000)
+- `MAX_REDIRECT_DEPTH`: Maximum redirect depth (default: 5)
+- `DEBUG_AGENT`: Enable debug logging (set to `"true"` to enable)
 
 ## Output Format
 
@@ -167,6 +180,28 @@ bun run typecheck
 ```bash
 bun run dev --job-id test-123 --url https://example.com
 ```
+
+### Testing
+
+Run the smoke test to verify basic functionality:
+
+```bash
+# Set OPENROUTER_API_KEY for full test (required for agent analysis)
+export OPENROUTER_API_KEY=your-api-key
+
+# Run smoke test
+bun run test:smoke
+
+# Or run all tests
+bun test
+```
+
+The smoke test verifies:
+- ✅ Fetcher runs successfully with valid inputs
+- ✅ Produces valid JSON output
+- ✅ Validates required parameters (job-id, url)
+- ✅ Accepts environment variables (JOB_ID, SCAN_URL)
+- ✅ Output structure matches expected schema
 
 ## Docker Build
 
