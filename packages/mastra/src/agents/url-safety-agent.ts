@@ -16,6 +16,11 @@ function isImageUrl(url: string): boolean {
   return imageExtensions.test(url);
 }
 
+function isImageContentType(contentType: string | null | undefined): boolean {
+  if (!contentType) return false;
+  return /^image\//i.test(contentType);
+}
+
 function extractUrlFromInput(
   input: Parameters<typeof urlSafetyAgent.generate>[0]
 ): string | null {
@@ -121,7 +126,35 @@ export async function generateWithDebug(
   options?: Parameters<Agent["generate"]>[1]
 ): Promise<ReturnType<Agent["generate"]>> {
   const detectedUrl = extractUrlFromInput(input);
-  const isImage = detectedUrl ? isImageUrl(detectedUrl) : false;
+  
+  // Check if URL has image extension
+  const hasImageExtension = detectedUrl ? isImageUrl(detectedUrl) : false;
+  
+  // Also check contentType from prompt if available
+  // Extract contentType from prompt text (format: "Content Type: image/jpeg")
+  let contentType: string | null = null;
+  if (typeof input === "string") {
+    const contentTypeMatch = input.match(/Content Type:\s*([^\n]+)/i);
+    if (contentTypeMatch) {
+      contentType = contentTypeMatch[1].trim();
+    }
+  } else if (Array.isArray(input) && input.length > 0) {
+    const lastMsg = input[input.length - 1];
+    if (typeof lastMsg === "object" && lastMsg && "content" in lastMsg) {
+      const content = (lastMsg as any).content;
+      const contentStr = typeof content === "string" 
+        ? content 
+        : Array.isArray(content) 
+          ? content.map((c: any) => typeof c === "string" ? c : c?.text || "").join(" ")
+          : "";
+      const contentTypeMatch = contentStr.match(/Content Type:\s*([^\n]+)/i);
+      if (contentTypeMatch) {
+        contentType = contentTypeMatch[1].trim();
+      }
+    }
+  }
+  
+  const isImage = hasImageExtension || isImageContentType(contentType);
 
   let enhancedInput = input;
 

@@ -33,7 +33,7 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     stderr: "pipe",
   });
 
-  const [stdout, stderr, exitCode] = await Promise.all([
+  const [stdout, _stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
     proc.exited,
