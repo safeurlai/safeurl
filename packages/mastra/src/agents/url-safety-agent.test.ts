@@ -57,7 +57,4 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     reasoning: reasoning.substring(0, 200),
     hasVisualAnalysis,
   });
-
-  // Note: We can't directly verify tool calls, but we can check if the reasoning
-  // mentions visual/screenshot analysis, which indicates the tool was used
-}, 120_000); // Increased timeout to 120s to help debug timeout issues
+}, 120_000);

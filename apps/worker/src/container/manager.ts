@@ -269,11 +269,16 @@ export async function spawnFetcherContainer(
     }
 
     // Parse JSON output from stdout
+    // The fetcher outputs a wrapper: {"jobId":"...","success":true,"result":{...}}
+    // We need to extract the "result" field for validation
     let parsedOutput: unknown;
+    let resultData: unknown;
+
     try {
-      // Try to find JSON in stdout (might be mixed with other output)
-      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      // Try to find JSON in stdout (might be mixed with other output like warnings)
+      // Look for the last JSON object (in case there are multiple or warnings before)
+      const jsonMatches = stdout.match(/\{[\s\S]*\}/g);
+      if (!jsonMatches || jsonMatches.length === 0) {
         return err({
           type: "parse_error",
           message: "No JSON output found in container stdout",
@@ -283,7 +288,49 @@ export async function spawnFetcherContainer(
           },
         });
       }
-      parsedOutput = JSON.parse(jsonMatch[0]);
+
+      // Parse the last JSON object (should be the main output)
+      parsedOutput = JSON.parse(jsonMatches[jsonMatches.length - 1]);
+
+      // Check if this is a wrapper object with success/result fields
+      if (
+        typeof parsedOutput === "object" &&
+        parsedOutput !== null &&
+        "success" in parsedOutput &&
+        "result" in parsedOutput
+      ) {
+        const wrapper = parsedOutput as {
+          success: boolean;
+          result: unknown;
+          jobId?: string;
+        };
+
+        // Check if the operation was successful
+        if (!wrapper.success) {
+          return err({
+            type: "crash",
+            message:
+              wrapper.result &&
+              typeof wrapper.result === "object" &&
+              "error" in wrapper.result
+                ? `Container reported failure: ${JSON.stringify(
+                    wrapper.result
+                  )}`
+                : "Container reported failure",
+            details: {
+              stdout,
+              stderr,
+              wrapper,
+            },
+          });
+        }
+
+        // Extract the result field for validation
+        resultData = wrapper.result;
+      } else {
+        // Assume it's already the result object (backward compatibility)
+        resultData = parsedOutput;
+      }
     } catch (parseError) {
       return err({
         type: "parse_error",
@@ -299,8 +346,8 @@ export async function spawnFetcherContainer(
       });
     }
 
-    // Validate output against schema
-    const validation = scanResultSchema.safeParse(parsedOutput);
+    // Validate the result against schema
+    const validation = scanResultSchema.safeParse(resultData);
     if (!validation.success) {
       return err({
         type: "validation_error",
@@ -309,6 +356,7 @@ export async function spawnFetcherContainer(
           validationErrors: validation.error.errors,
           stdout,
           stderr,
+          parsedOutput,
         },
       });
     }
