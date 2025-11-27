@@ -83,8 +83,7 @@ export function createUrlSafetyAgent(config: UrlSafetyAgentConfig): Agent {
   }
 
   const openrouter = createOpenRouter({
-    apiKey:
-      "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",
+    apiKey: config.openRouterApiKey,
   });
 
   const agent = new Agent({
