@@ -62,4 +62,10 @@ bun run db:studio        # Open Drizzle Studio
 
 ## License
 
-Business Source License (BSL 1.1)
+GNU Affero General Public License v3.0 (AGPL-3.0)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+**Why AGPL?** SafeURL.ai is a SaaS service accessed over the network. AGPL v3 extends copyleft to network use, ensuring that anyone who uses this code to provide a service over a network must share their source code modifications. This protects against competitors forking the code and running it as a proprietary SaaS without contributing back.
+
+See [LICENSE](LICENSE) for full details.
