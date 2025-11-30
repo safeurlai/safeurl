@@ -18,8 +18,10 @@ services:
       - "256mb"
       - --maxmemory-policy
       - "noeviction"
+      - --requirepass
+      - ${REDIS_PASSWORD:-}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -53,6 +55,7 @@ services:
       - PORT=8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       # Database: Turso (libSQL) - accessed via workspace package
       # Reads from .env file: TURSO_CONNECTION_URL
       - TURSO_CONNECTION_URL=${TURSO_CONNECTION_URL:-}
@@ -131,6 +134,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       # Database: Turso (libSQL) - accessed via workspace package
       # Worker expects TURSO_CONNECTION_URL and TURSO_AUTH_TOKEN from .env file
       - TURSO_CONNECTION_URL=${TURSO_CONNECTION_URL:-}

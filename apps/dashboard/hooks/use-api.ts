@@ -5,13 +5,27 @@ import {
   type Query,
 } from "@tanstack/react-query";
 
-import { api, ApiError } from "~/lib/api";
+import { api } from "~/lib/eden";
 import type {
   CreateScanRequest,
   CreditBalanceResponse,
   PurchaseCreditsRequest,
   ScanResponse,
 } from "~/lib/types";
+
+/**
+ * API error class for Eden error handling
+ */
+export class ApiError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public details?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
 /**
  * Query keys factory for consistent cache key management
@@ -28,14 +42,6 @@ export const queryKeys = {
 } as const;
 
 /**
- * Hook to set up API client
- * Kept for backwards compatibility but does nothing
- */
-export function useApiSetup() {
-  // No-op: API client is configured globally
-}
-
-/**
  * Hook to fetch a single scan by ID
  */
 export function useScan(
@@ -48,13 +54,25 @@ export function useScan(
       | ((query: Query<ScanResponse>) => number | false);
   },
 ) {
-  useApiSetup();
-
   return useQuery({
     queryKey: queryKeys.scans.detail(scanId),
     queryFn: async () => {
-      const data = await api.getScan(scanId);
-      return data;
+      const { data, error } = await api.v1.scans({ id: scanId }).get();
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("not_found", "Scan not found");
+      }
+      return data as ScanResponse;
     },
     enabled: options?.enabled !== false && !!scanId,
     staleTime: 30 * 1000, // Consider data stale after 30 seconds
@@ -73,13 +91,25 @@ export function useScan(
  * Hook to fetch credit balance
  */
 export function useCreditBalance() {
-  useApiSetup();
-
   return useQuery({
     queryKey: queryKeys.credits.balance(),
     queryFn: async () => {
-      const data = await api.getCreditBalance();
-      return data;
+      const { data, error } = await api.v1.credits.get();
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to fetch credit balance");
+      }
+      return data as CreditBalanceResponse;
     },
     staleTime: 60 * 1000, // Consider data stale after 1 minute
     refetchOnWindowFocus: true, // Refetch when user returns to the tab
@@ -90,12 +120,26 @@ export function useCreditBalance() {
  * Hook to create a new scan
  */
 export function useCreateScan() {
-  useApiSetup();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (request: CreateScanRequest) => {
-      return api.createScan(request);
+      const { data, error } = await api.v1.scans.post(request);
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to create scan");
+      }
+      return data as { id: string; state: string };
     },
     onSuccess: (data) => {
       // Invalidate scans list to refetch
@@ -113,12 +157,35 @@ export function useCreateScan() {
  * Hook to purchase credits
  */
 export function usePurchaseCredits() {
-  useApiSetup();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (request: PurchaseCreditsRequest) => {
-      return api.purchaseCredits(request);
+      const { data, error } = await api.v1.credits.purchase.post(request);
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to purchase credits");
+      }
+      return data as {
+        id: string;
+        userId: string;
+        amount: number;
+        paymentMethod: string;
+        status: string;
+        createdAt: string;
+        completedAt: string;
+        newBalance: number;
+      };
     },
     onSuccess: () => {
       // Invalidate credit balance to refetch
