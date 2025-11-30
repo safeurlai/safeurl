@@ -31,14 +31,11 @@ export async function analyzeWithAgent(
     });
   }
 
-  if (
-    !openRouterApiKey.startsWith("sk-or-v1-") &&
-    !openRouterApiKey.startsWith("sk-or-")
-  ) {
+  if (!openRouterApiKey.startsWith("sk-or-")) {
     return err({
       type: "agent",
       message:
-        "Invalid OPENROUTER_API_KEY format. OpenRouter API keys should start with 'sk-or-v1-' or 'sk-or-'. Get your API key from https://openrouter.ai/keys",
+        "Invalid OPENROUTER_API_KEY format. OpenRouter API keys should start with 'sk-or-'. Get your API key from https://openrouter.ai/keys",
     });
   }
 
