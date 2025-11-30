@@ -16,9 +16,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.72",
-    "@mastra/core": "^0.24.5",
-    "@openrouter/ai-sdk-provider": "^1.2.5",
+    "@ai-sdk/openai": "^2.0.74",
+    "@mastra/core": "^0.24.6",
+    "@openrouter/ai-sdk-provider": "^1.2.8",
     "@safeurl/core": "workspace:*",
     "neverthrow": "^6.2.2",
     "zod": "^3.25.76"
@@ -26,7 +26,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.3",
     "typescript": "^5.9.3",
-    "playwright": "^1.56.1"
+    "playwright": "^1.57.0"
   },
   "license": "AGPL-3.0"
 }

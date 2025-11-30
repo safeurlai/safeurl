@@ -16,7 +16,7 @@
   "dependencies": {
     "@safeurl/core": "workspace:*",
     "@safeurl/mastra": "workspace:*",
-    "zod": "^3.24.1"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bun": "^1.3.3",
