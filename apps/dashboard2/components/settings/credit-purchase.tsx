@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { usePurchaseCredits } from "~/lib/hooks/use-api";
+import { usePurchaseCredits } from "~/hooks/use-api";
 import { useToast } from "~/hooks/use-toast";
 
 export function CreditPurchase() {
@@ -69,7 +69,9 @@ export function CreditPurchase() {
           disabled={purchaseCredits.isPending || amount < 1}
           className="w-full"
         >
-          {purchaseCredits.isPending ? "Processing..." : `Purchase ${amount} Credits`}
+          {purchaseCredits.isPending
+            ? "Processing..."
+            : `Purchase ${amount} Credits`}
         </Button>
         <p className="text-xs text-muted-foreground">
           Note: Payment integration is a stub. This will be implemented in a

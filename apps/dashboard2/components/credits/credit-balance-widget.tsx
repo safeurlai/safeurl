@@ -9,7 +9,7 @@ import {
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { useCreditBalance } from "~/lib/hooks/use-api";
+import { useCreditBalance } from "~/hooks/use-api";
 import { CreditCard, Plus } from "lucide-react";
 import Link from "next/link";
 

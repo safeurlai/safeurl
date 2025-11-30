@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { useCreateScan } from "~/lib/hooks/use-api";
+import { useCreateScan } from "~/hooks/use-api";
 import { useToast } from "~/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
