@@ -14,9 +14,9 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 export function LandingPage() {
   return (
-    <div className="min-h-[calc(100vh-4rem)]">
+    <div className="container mx-auto space-y-8">
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16 md:py-24">
+      <div className="py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-primary/10 p-4">
@@ -46,37 +46,35 @@ export function LandingPage() {
       </div>
 
       {/* Features Section */}
-      <div className="border-t bg-muted/50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <Zap className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Lightning Fast</CardTitle>
-                <CardDescription>
-                  Get instant results with real-time URL analysis
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader>
-                <Shield className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>AI-Powered</CardTitle>
-                <CardDescription>
-                  Advanced machine learning detects threats accurately
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader>
-                <Lock className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Secure & Private</CardTitle>
-                <CardDescription>
-                  Your data is protected with enterprise-grade security
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
+      <div className="border-t bg-muted/50 py-8">
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <Zap className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Lightning Fast</CardTitle>
+              <CardDescription>
+                Get instant results with real-time URL analysis
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Shield className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>AI-Powered</CardTitle>
+              <CardDescription>
+                Advanced machine learning detects threats accurately
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Lock className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Secure & Private</CardTitle>
+              <CardDescription>
+                Your data is protected with enterprise-grade security
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </div>
     </div>
