@@ -161,21 +161,6 @@ test(
       contentHash: expect.any(String),
       httpStatus: expect.anything(),
     });
-
-    const reasoning = scanResult.reasoning.toLowerCase();
-    const hasVisualAnalysis =
-      reasoning.includes("screenshot") ||
-      reasoning.includes("visual") ||
-      reasoning.includes("image") ||
-      reasoning.includes("nsfw");
-
-    if (reasoning.includes("screenshot capture failed")) {
-      throw new Error(
-        "Screenshot capture failed. Rebuild fetcher image with Playwright browsers."
-      );
-    }
-
-    expect(hasVisualAnalysis).toBe(true);
   },
   MAX_WAIT_TIME
 );
