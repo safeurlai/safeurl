@@ -36,7 +36,7 @@ function extractUrlFromInput(
     if (Array.isArray(content)) {
       for (const item of content) {
         if (typeof item === "object" && item && "text" in item) {
-          const result = extractFromText((item as any).text);
+          const result = extractFromText(item.text);
           if (result) return result;
         }
       }
@@ -126,10 +126,10 @@ export async function generateWithDebug(
   options?: Parameters<Agent["generate"]>[1]
 ): Promise<ReturnType<Agent["generate"]>> {
   const detectedUrl = extractUrlFromInput(input);
-  
+
   // Check if URL has image extension
   const hasImageExtension = detectedUrl ? isImageUrl(detectedUrl) : false;
-  
+
   // Also check contentType from prompt if available
   // Extract contentType from prompt text (format: "Content Type: image/jpeg")
   let contentType: string | null = null;
@@ -142,10 +142,13 @@ export async function generateWithDebug(
     const lastMsg = input[input.length - 1];
     if (typeof lastMsg === "object" && lastMsg && "content" in lastMsg) {
       const content = (lastMsg as any).content;
-      const contentStr = typeof content === "string" 
-        ? content 
-        : Array.isArray(content) 
-          ? content.map((c: any) => typeof c === "string" ? c : c?.text || "").join(" ")
+      const contentStr =
+        typeof content === "string"
+          ? content
+          : Array.isArray(content)
+          ? content
+              .map((c: any) => (typeof c === "string" ? c : c?.text || ""))
+              .join(" ")
           : "";
       const contentTypeMatch = contentStr.match(/Content Type:\s*([^\n]+)/i);
       if (contentTypeMatch) {
@@ -153,7 +156,7 @@ export async function generateWithDebug(
       }
     }
   }
-  
+
   const isImage = hasImageExtension || isImageContentType(contentType);
 
   let enhancedInput = input;
@@ -227,8 +230,7 @@ export async function generateWithDebug(
   }
 
   try {
-    const result = await agent.generate(enhancedInput, options);
-    return result;
+    return await agent.generate(enhancedInput, options);
   } catch (error: any) {
     const errorMessage = error?.message || String(error);
     if (
