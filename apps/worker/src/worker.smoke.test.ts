@@ -182,37 +182,33 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
   expect(jobState).toBe("COMPLETED");
 
   // Fetch the scan result
-  const result = await db
+  const [result] = await db
     .select()
     .from(scanResults)
     .where(eq(scanResults.jobId, job.id))
     .limit(1);
 
-  expect(result.length).toBe(1);
-  const scanResult = result[0];
+  expect(result).toBeDefined();
 
   // Verify result structure - matching fetcher test exactly
-  expect(scanResult).toHaveProperty("riskScore");
-  expect(scanResult).toHaveProperty("categories");
-  expect(scanResult).toHaveProperty("reasoning");
-  expect(scanResult).toHaveProperty("indicators");
-  expect(scanResult).toHaveProperty("contentHash");
-  expect(scanResult).toHaveProperty("httpStatus");
+  expect(result).toHaveProperty("riskScore");
+  expect(result).toHaveProperty("categories");
+  expect(result).toHaveProperty("reasoning");
+  expect(result).toHaveProperty("indicators");
+  expect(result).toHaveProperty("contentHash");
+  expect(result).toHaveProperty("httpStatus");
 
   // Verify types - matching fetcher test exactly
-  expect(typeof scanResult.riskScore).toBe("number");
-  expect(Array.isArray(scanResult.categories)).toBe(true);
-  expect(typeof scanResult.reasoning).toBe("string");
-  expect(Array.isArray(scanResult.indicators)).toBe(true);
+  expect(typeof result.riskScore).toBe("number");
+  expect(Array.isArray(result.categories)).toBe(true);
+  expect(typeof result.reasoning).toBe("string");
+  expect(Array.isArray(result.indicators)).toBe(true);
 
   // Note: confidenceScore is not stored in scanResults table (only in audit log)
   // The fetcher test checks for it in the JSON output, but it's part of the analysis result
   // We verify it exists in analysisMetadata if available
-  if (
-    scanResult.analysisMetadata &&
-    typeof scanResult.analysisMetadata === "object"
-  ) {
-    const metadata = scanResult.analysisMetadata as Record<string, unknown>;
+  if (result.analysisMetadata && typeof result.analysisMetadata === "object") {
+    const metadata = result.analysisMetadata as Record<string, unknown>;
     if (metadata.confidenceScore !== undefined) {
       expect(typeof metadata.confidenceScore).toBe("number");
     }
@@ -220,16 +216,12 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
 
   // Verify visual analysis was performed - matching fetcher test exactly
   // For image URLs, we expect explicit mention of screenshot/visual analysis
-  const reasoning = scanResult.reasoning.toLowerCase();
+  const reasoning = result.reasoning.toLowerCase();
   const hasVisualAnalysis =
     reasoning.includes("screenshot") ||
     reasoning.includes("visual") ||
     reasoning.includes("image") ||
     reasoning.includes("nsfw");
-
-  // Log full reasoning to debug visual analysis
-  console.log("Full reasoning:", scanResult.reasoning);
-  console.log("Reasoning length:", scanResult.reasoning.length);
 
   // For image URLs, we should get visual analysis, not just metadata analysis
   // Check if reasoning mentions actual visual inspection vs just metadata
@@ -264,10 +256,10 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
   // Log the job result
   console.log("Job result:", {
     jobId: job.id,
-    riskScore: scanResult.riskScore,
-    categories: scanResult.categories,
-    reasoning: scanResult.reasoning.substring(0, 500),
-    indicators: scanResult.indicators,
+    riskScore: result.riskScore,
+    categories: result.categories,
+    reasoning: result.reasoning.substring(0, 500),
+    indicators: result.indicators,
     hasVisualAnalysis,
     hasExplicitVisualAnalysis,
   });
