@@ -126,6 +126,21 @@ afterAll(async () => {
   } else {
     redisConnection.disconnect();
   }
+
+  // Clean up all database records associated with TEST_USER_ID
+  try {
+    // Delete scan jobs (this will cascade delete scanResults and auditLogs)
+    await db.delete(scanJobs).where(eq(scanJobs.userId, TEST_USER_ID));
+
+    // Delete wallets
+    await db.delete(wallets).where(eq(wallets.userId, TEST_USER_ID));
+
+    // Delete user
+    await db.delete(users).where(eq(users.clerkUserId, TEST_USER_ID));
+  } catch (error) {
+    console.error("Error cleaning up test data:", error);
+    // Don't throw - cleanup errors shouldn't fail the test
+  }
 });
 
 test("should analyze image URL and use screenshot-analysis tool", async () => {
