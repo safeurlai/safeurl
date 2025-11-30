@@ -10,7 +10,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { RiskScoreIndicator } from "~/components/scans/risk-score-indicator";
 import { Skeleton } from "~/components/ui/skeleton";
-import { useScan } from "~/lib/hooks/use-api";
+import { useScan } from "~/hooks/use-api";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ExternalLink, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
@@ -21,7 +21,11 @@ interface ScanDetailsProps {
 }
 
 export function ScanDetails({ scanId }: ScanDetailsProps) {
-  const { data: scan, isLoading, error } = useScan(scanId, {
+  const {
+    data: scan,
+    isLoading,
+    error,
+  } = useScan(scanId, {
     enabled: !!scanId,
   });
 

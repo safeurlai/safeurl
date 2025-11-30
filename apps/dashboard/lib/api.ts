@@ -15,7 +15,9 @@ class ApiClient {
    */
   private getProxyUrl(endpoint: string): string {
     // Remove leading slash if present
-    const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
+    const cleanEndpoint = endpoint.startsWith("/")
+      ? endpoint.slice(1)
+      : endpoint;
     // Use Next.js API proxy route
     return `/api/${cleanEndpoint}`;
   }
@@ -56,7 +58,7 @@ class ApiClient {
       if (error instanceof ApiError) {
         throw error;
       }
-      
+
       // Check if it's a network error
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new ApiError(
@@ -65,7 +67,7 @@ class ApiClient {
           { originalError: error.message }
         );
       }
-      
+
       // Re-throw unknown errors
       throw new ApiError(
         "unknown_error",
@@ -76,7 +78,9 @@ class ApiClient {
   }
 
   // Scans endpoints
-  async createScan(request: CreateScanRequest): Promise<{ id: string; state: string }> {
+  async createScan(
+    request: CreateScanRequest
+  ): Promise<{ id: string; state: string }> {
     return this.request("/v1/scans", {
       method: "POST",
       body: JSON.stringify(request),
@@ -113,11 +117,7 @@ class ApiClient {
  * API error class
  */
 export class ApiError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public details?: unknown
-  ) {
+  constructor(public code: string, message: string, public details?: unknown) {
     super(message);
     this.name = "ApiError";
   }
@@ -125,4 +125,3 @@ export class ApiError extends Error {
 
 // Export singleton instance
 export const api = new ApiClient();
-

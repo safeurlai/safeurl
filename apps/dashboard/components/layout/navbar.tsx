@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { Shield, Settings, Home } from "lucide-react";
@@ -40,6 +47,19 @@ export function Navbar() {
                 );
               })}
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="ghost">Sign In</Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button>Sign Up</Button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
           </div>
         </div>
       </div>

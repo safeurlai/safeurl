@@ -1,119 +1,36 @@
-# SafeURL Dashboard
-
-Next.js dashboard for SafeURL - AI-powered URL safety screening service.
-
-## Features
-
-- **Authentication**: Clerk-based authentication
-- **Scan Management**: Create and view URL scans
-- **Credit System**: View balance and purchase credits
-- **Real-time Updates**: Poll for scan status updates
-- **Responsive UI**: Modern, accessible interface built with shadcn/ui
-
-## Tech Stack
-
-- **Framework**: Next.js 15 (App Router)
-- **Runtime**: Bun
-- **Authentication**: Clerk
-- **UI**: Tailwind CSS + shadcn/ui components
-- **Validation**: Zod schemas from `@safeurl/core`
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-### Prerequisites
-
-- Bun >= 1.0.0
-- Node.js 18+ (for Next.js compatibility)
-
-### Installation
+First, run the development server:
 
 ```bash
-# Install dependencies
-bun install
-```
-
-### Environment Variables
-
-Create a `.env.local` file in the `apps/dashboard` directory:
-
-```bash
-# Clerk Authentication
-# Get your keys from: https://dashboard.clerk.com/last-active?path=api-keys
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-CLERK_SECRET_KEY=YOUR_SECRET_KEY
-
-# API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-**Important**: Replace `YOUR_PUBLISHABLE_KEY` and `YOUR_SECRET_KEY` with your actual Clerk API keys from the [Clerk Dashboard](https://dashboard.clerk.com/last-active?path=api-keys). Never commit `.env.local` to version control.
-
-### Development
-
-```bash
-# Start development server
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
 bun dev
 ```
 
-The dashboard will be available at `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### Build
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```bash
-# Build for production
-bun build
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-# Start production server
-bun start
-```
+## Learn More
 
-## Project Structure
+To learn more about Next.js, take a look at the following resources:
 
-```
-apps/dashboard/
-├── app/                    # Next.js App Router pages
-│   ├── layout.tsx          # Root layout with Clerk provider
-│   ├── page.tsx            # Dashboard home
-│   ├── scans/
-│   │   ├── [id]/          # Scan details page
-│   │   └── new/           # New scan page
-│   └── settings/          # Settings page
-├── components/
-│   ├── ui/                # shadcn/ui components
-│   ├── scans/            # Scan-related components
-│   ├── credits/          # Credit-related components
-│   ├── settings/         # Settings components
-│   └── layout/           # Layout components (navbar, etc.)
-├── lib/
-│   ├── api.ts            # API client
-│   ├── types.ts          # Type definitions
-│   └── utils.ts          # Utility functions
-└── hooks/                # React hooks
-```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## API Integration
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-The dashboard communicates with the SafeURL API (`@safeurl/api`) using the API client in `lib/api.ts`. All requests are authenticated using Clerk bearer tokens.
+## Deploy on Vercel
 
-### Available Endpoints
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-- `POST /v1/scans` - Create a new scan
-- `GET /v1/scans/:id` - Get scan details
-- `GET /v1/credits` - Get credit balance
-- `POST /v1/credits/purchase` - Purchase credits
-
-## Features in Progress
-
-- [ ] List scans endpoint (currently placeholder)
-- [ ] Real-time WebSocket updates
-- [ ] API key management
-- [ ] Payment integration for credits
-- [ ] Scan history pagination and filtering
-
-## Notes
-
-- The dashboard uses Next.js Server Components where possible for better performance
-- Client components are used for interactive features and real-time updates
-- All API calls include proper error handling and user feedback
-- The UI follows accessibility best practices with ARIA labels and keyboard navigation
-
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

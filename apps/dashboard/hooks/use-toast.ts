@@ -16,15 +16,14 @@ export function useToast() {
     const id = (toastId++).toString();
     const newToast = { ...toast, id };
     setToasts((prev) => [...prev, newToast]);
-    
+
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 5000);
-    
+
     return id;
   }, []);
 
   return { toast, toasts };
 }
-
