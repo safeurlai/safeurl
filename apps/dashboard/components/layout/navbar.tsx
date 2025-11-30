@@ -30,23 +30,25 @@ export function Navbar() {
               <Shield className="h-6 w-6" />
               <span className="text-xl font-bold">SafeURL</span>
             </Link>
-            <div className="hidden md:flex gap-1">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link key={item.name} href={item.href}>
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      className={cn("gap-2", isActive && "bg-secondary")}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.name}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
+            <SignedIn>
+              <div className="hidden md:flex gap-1">
+                {navigation.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link key={item.name} href={item.href}>
+                      <Button
+                        variant={isActive ? "secondary" : "ghost"}
+                        className={cn("gap-2", isActive && "bg-secondary")}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.name}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+            </SignedIn>
           </div>
           <div className="flex items-center gap-4">
             <SignedOut>
