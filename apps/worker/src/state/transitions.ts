@@ -4,13 +4,16 @@ import { db } from "../lib/db";
 import { scanJobs } from "@safeurl/db";
 import { eq, and } from "drizzle-orm";
 import { validateStateTransition } from "@safeurl/core/schemas";
-import type { ScanJobState } from "@safeurl/core/schemas";
 
 /**
  * State transition error types
  */
 export interface StateTransitionError {
-  type: "invalid_transition" | "version_conflict" | "not_found" | "database_error";
+  type:
+    | "invalid_transition"
+    | "version_conflict"
+    | "not_found"
+    | "database_error";
   message: string;
   details?: unknown;
 }
@@ -32,7 +35,7 @@ export async function transitionToFetching(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
@@ -41,7 +44,7 @@ export async function transitionToFetching(
     const validation = validateStateTransition(job.state, "FETCHING");
     if (!validation.valid) {
       return err({
-        type: "invalid_transition",
+        type: "invalid_transition" as const,
         message: validation.error || "Invalid state transition",
         details: {
           currentState: job.state,
@@ -53,7 +56,7 @@ export async function transitionToFetching(
     // Check version for optimistic locking
     if (job.version !== expectedVersion) {
       return err({
-        type: "version_conflict",
+        type: "version_conflict" as const,
         message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
         details: {
           expected: expectedVersion,
@@ -70,24 +73,20 @@ export async function transitionToFetching(
         version: job.version + 1,
         updatedAt: new Date(),
       })
-      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+      .where(
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+      );
 
     return ok(undefined);
-  }).andThen((result) => {
-    if (result.isErr()) {
-      // Check if it's a database error or our custom error
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      // Return the custom error as-is
-      return err(result.error as StateTransitionError);
-    }
-    return ok(undefined);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
 
 /**
@@ -106,7 +105,7 @@ export async function transitionToAnalyzing(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
@@ -114,7 +113,7 @@ export async function transitionToAnalyzing(
     const validation = validateStateTransition(job.state, "ANALYZING");
     if (!validation.valid) {
       return err({
-        type: "invalid_transition",
+        type: "invalid_transition" as const,
         message: validation.error || "Invalid state transition",
         details: {
           currentState: job.state,
@@ -125,7 +124,7 @@ export async function transitionToAnalyzing(
 
     if (job.version !== expectedVersion) {
       return err({
-        type: "version_conflict",
+        type: "version_conflict" as const,
         message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
         details: {
           expected: expectedVersion,
@@ -141,22 +140,20 @@ export async function transitionToAnalyzing(
         version: job.version + 1,
         updatedAt: new Date(),
       })
-      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+      .where(
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+      );
 
     return ok(undefined);
-  }).andThen((result) => {
-    if (result.isErr()) {
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      return err(result.error as StateTransitionError);
-    }
-    return ok(undefined);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
 
 /**
@@ -175,7 +172,7 @@ export async function transitionToCompleted(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
@@ -183,7 +180,7 @@ export async function transitionToCompleted(
     const validation = validateStateTransition(job.state, "COMPLETED");
     if (!validation.valid) {
       return err({
-        type: "invalid_transition",
+        type: "invalid_transition" as const,
         message: validation.error || "Invalid state transition",
         details: {
           currentState: job.state,
@@ -194,7 +191,7 @@ export async function transitionToCompleted(
 
     if (job.version !== expectedVersion) {
       return err({
-        type: "version_conflict",
+        type: "version_conflict" as const,
         message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
         details: {
           expected: expectedVersion,
@@ -210,22 +207,20 @@ export async function transitionToCompleted(
         version: job.version + 1,
         updatedAt: new Date(),
       })
-      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+      .where(
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+      );
 
     return ok(undefined);
-  }).andThen((result) => {
-    if (result.isErr()) {
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      return err(result.error as StateTransitionError);
-    }
-    return ok(undefined);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
 
 /**
@@ -245,16 +240,20 @@ export async function transitionToFailed(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
 
     // FAILED is a terminal state, can transition from any state
     // But we still validate it's not already in a terminal state
-    if (job.state === "COMPLETED" || job.state === "FAILED" || job.state === "TIMED_OUT") {
+    if (
+      job.state === "COMPLETED" ||
+      job.state === "FAILED" ||
+      job.state === "TIMED_OUT"
+    ) {
       return err({
-        type: "invalid_transition",
+        type: "invalid_transition" as const,
         message: `Cannot transition from terminal state ${job.state} to FAILED`,
         details: {
           currentState: job.state,
@@ -265,7 +264,7 @@ export async function transitionToFailed(
 
     if (job.version !== expectedVersion) {
       return err({
-        type: "version_conflict",
+        type: "version_conflict" as const,
         message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
         details: {
           expected: expectedVersion,
@@ -281,22 +280,20 @@ export async function transitionToFailed(
         version: job.version + 1,
         updatedAt: new Date(),
       })
-      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+      .where(
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+      );
 
     return ok(undefined);
-  }).andThen((result) => {
-    if (result.isErr()) {
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      return err(result.error as StateTransitionError);
-    }
-    return ok(undefined);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
 
 /**
@@ -316,7 +313,7 @@ export async function transitionToTimedOut(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
@@ -324,7 +321,7 @@ export async function transitionToTimedOut(
     const validation = validateStateTransition(job.state, "TIMED_OUT");
     if (!validation.valid) {
       return err({
-        type: "invalid_transition",
+        type: "invalid_transition" as const,
         message: validation.error || "Invalid state transition",
         details: {
           currentState: job.state,
@@ -335,7 +332,7 @@ export async function transitionToTimedOut(
 
     if (job.version !== expectedVersion) {
       return err({
-        type: "version_conflict",
+        type: "version_conflict" as const,
         message: `Version mismatch. Expected: ${expectedVersion}, Actual: ${job.version}`,
         details: {
           expected: expectedVersion,
@@ -351,22 +348,20 @@ export async function transitionToTimedOut(
         version: job.version + 1,
         updatedAt: new Date(),
       })
-      .where(and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)));
+      .where(
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+      );
 
     return ok(undefined);
-  }).andThen((result) => {
-    if (result.isErr()) {
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      return err(result.error as StateTransitionError);
-    }
-    return ok(undefined);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
 
 /**
@@ -374,7 +369,12 @@ export async function transitionToTimedOut(
  */
 export async function getJobWithVersion(
   jobId: string
-): Promise<Result<{ job: typeof scanJobs.$inferSelect; version: number }, StateTransitionError>> {
+): Promise<
+  Result<
+    { job: typeof scanJobs.$inferSelect; version: number },
+    StateTransitionError
+  >
+> {
   return wrapDbQuery(async () => {
     const [job] = await db
       .select()
@@ -384,24 +384,19 @@ export async function getJobWithVersion(
 
     if (!job) {
       return err({
-        type: "not_found",
+        type: "not_found" as const,
         message: `Scan job ${jobId} not found`,
       });
     }
 
     return ok({ job, version: job.version });
-  }).andThen((result) => {
-    if (result.isErr()) {
-      if (result.error.type === "query" || result.error.type === "connection") {
-        return err({
-          type: "database_error",
-          message: result.error.message,
-          details: result.error,
-        });
-      }
-      return err(result.error as StateTransitionError);
-    }
-    return ok(result.value);
-  });
+  })
+    .mapErr((dbError): StateTransitionError => {
+      return {
+        type: "database_error" as const,
+        message: dbError.message,
+        details: dbError,
+      };
+    })
+    .andThen((result) => result);
 }
-

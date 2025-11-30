@@ -1,5 +1,6 @@
 import { Worker, Job } from "bullmq";
 import Redis from "ioredis";
+import { createLogger } from "@safeurl/core/logger";
 import {
   transitionToFetching,
   transitionToFailed,
@@ -35,13 +36,17 @@ function createRedisConnection(): Redis {
 export function createWorker(): Worker<ScanJobPayload> {
   const connection = createRedisConnection();
   const concurrency = parseInt(process.env.WORKER_CONCURRENCY || "5", 10);
+  const logger = createLogger({ prefix: "worker" });
 
   const worker = new Worker<ScanJobPayload>(
     "scan-jobs",
     async (job: Job<ScanJobPayload>) => {
       const { jobId, url } = job.data;
 
-      console.log(`Processing scan job ${jobId} for URL: ${url}`);
+      logger.info(`Processing scan job ${jobId} for URL: ${url}`, {
+        jobId,
+        url,
+      });
 
       // Step 1: Claim job and transition QUEUED -> FETCHING
       const jobVersionResult = await getJobWithVersion(jobId);
@@ -68,33 +73,33 @@ export function createWorker(): Worker<ScanJobPayload> {
         const containerError = containerResult.error;
 
         // Log detailed error information for debugging
-        console.error(
-          `[CONTAINER ERROR] Job ${jobId} - Container execution failed:`,
-          {
-            errorType: containerError.type,
-            errorMessage: containerError.message,
-            details: containerError.details,
-            // Extract stdout/stderr from details if available
-            stdout:
-              containerError.details &&
-              typeof containerError.details === "object" &&
-              "stdout" in containerError.details
-                ? containerError.details.stdout
-                : undefined,
-            stderr:
-              containerError.details &&
-              typeof containerError.details === "object" &&
-              "stderr" in containerError.details
-                ? containerError.details.stderr
-                : undefined,
-            exitCode:
-              containerError.details &&
-              typeof containerError.details === "object" &&
-              "exitCode" in containerError.details
-                ? containerError.details.exitCode
-                : undefined,
-          }
-        );
+        logger.error(`Job ${jobId} - Container execution failed`, {
+          error: new Error(containerError.message),
+          errorType: containerError.type,
+          errorMessage: containerError.message,
+          details: containerError.details,
+          // Extract stdout/stderr from details if available
+          stdout:
+            containerError.details &&
+            typeof containerError.details === "object" &&
+            "stdout" in containerError.details
+              ? containerError.details.stdout
+              : undefined,
+          stderr:
+            containerError.details &&
+            typeof containerError.details === "object" &&
+            "stderr" in containerError.details
+              ? containerError.details.stderr
+              : undefined,
+          exitCode:
+            containerError.details &&
+            typeof containerError.details === "object" &&
+            "exitCode" in containerError.details
+              ? containerError.details.exitCode
+              : undefined,
+          jobId,
+          url,
+        });
 
         // Transition to FAILED state
         const updatedVersionResult = await getJobWithVersion(jobId);
@@ -160,7 +165,7 @@ export function createWorker(): Worker<ScanJobPayload> {
         );
       }
 
-      console.log(`Successfully completed scan job ${jobId}`);
+      logger.info(`Successfully completed scan job ${jobId}`, { jobId });
       return { success: true, jobId };
     },
     {
@@ -178,21 +183,23 @@ export function createWorker(): Worker<ScanJobPayload> {
 
   // Set up event handlers
   worker.on("completed", (job) => {
-    console.log(`Job ${job.id} completed successfully`);
+    logger.info(`Job ${job.id} completed successfully`, { jobId: job.id });
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`Job ${job?.id} failed:`, {
+    logger.error(`Job ${job?.id} failed`, {
+      error: err,
       message: err.message,
       stack: err.stack,
       name: err.name,
       // Include job data if available
       jobData: job?.data,
+      jobId: job?.id,
     });
   });
 
   worker.on("error", (err) => {
-    console.error("Worker error:", err);
+    logger.error("Worker error", { error: err });
   });
 
   return worker;
