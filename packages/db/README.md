@@ -61,10 +61,10 @@ await db.transaction(async (tx) => {
 
 The database is configured via environment variables:
 
-- `DATABASE_URL`: Database connection URL
+- `TURSO_CONNECTION_URL`: Database connection URL
   - Local: `file:./local.db`
   - Turso Cloud: `libsql://your-database.turso.io`
-- `DATABASE_AUTH_TOKEN`: Authentication token (required for Turso Cloud)
+- `TURSO_AUTH_TOKEN`: Authentication token (required for Turso Cloud)
 
 ## Architecture
 
@@ -146,7 +146,7 @@ import { db } from "@safeurl/db";
 For local development, use SQLite:
 
 ```bash
-export DATABASE_URL="file:./local.db"
+export TURSO_CONNECTION_URL="file:./local.db"
 ```
 
 ### Production
@@ -154,8 +154,8 @@ export DATABASE_URL="file:./local.db"
 For production, use Turso Cloud:
 
 ```bash
-export DATABASE_URL="libsql://your-database.turso.io"
-export DATABASE_AUTH_TOKEN="your-auth-token"
+export TURSO_CONNECTION_URL="libsql://your-database.turso.io"
+export TURSO_AUTH_TOKEN="your-auth-token"
 ```
 
 ## Testing

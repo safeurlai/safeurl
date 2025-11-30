@@ -10,7 +10,7 @@
  * Prerequisites:
  * - Redis must be running (for BullMQ queue)
  * - Worker service must be running to process scan jobs
- * - Database must be accessible (configured via DATABASE_URL)
+ * - Database must be accessible (configured via TURSO_CONNECTION_URL)
  *
  * To run this test:
  *   1. Start Redis: redis-server

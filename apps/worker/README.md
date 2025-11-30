@@ -59,8 +59,8 @@ See `.env.example` for all configuration options:
 
 ```bash
 # Database
-DATABASE_URL=file:./local.db
-DATABASE_AUTH_TOKEN=
+TURSO_CONNECTION_URL=file:./local.db
+TURSO_AUTH_TOKEN=
 
 # Redis
 REDIS_HOST=localhost

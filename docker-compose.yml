@@ -1,40 +1,62 @@
 services:
   # Database: Turso (libSQL) - accessed directly via workspace package
-  # No Docker service needed - services connect to Turso cloud via DATABASE_URL
+  # No Docker service needed - services connect to Turso cloud via TURSO_CONNECTION_URL
   # The @safeurl/db workspace package handles database connections
 
   redis:
     image: redis:7-alpine
+    container_name: safeurl-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - "256mb"
+      - --maxmemory-policy
+      - "noeviction"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - safeurl-network
+    # Resource limits (works in both regular compose and Swarm mode)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    image: safeurl/api
+      cache_from:
+        - safeurl/api:latest
+    image: safeurl/api:latest
+    container_name: safeurl-api
     ports:
       - "8080:8080"
-    # Load environment variables from .env file (if it exists)
-    # Docker Compose also automatically loads .env from project root
-    env_file:
-      - .env
+    # Docker Compose automatically loads .env from project root
+    # Only specify env_file if you need a different file
     environment:
       - PORT=8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       # Database: Turso (libSQL) - accessed via workspace package
-      # Reads from .env file: DATABASE_URL or TURSO_CONNECTION_URL
-      - DATABASE_URL=${DATABASE_URL:-${TURSO_CONNECTION_URL:-}}
-      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN:-${TURSO_AUTH_TOKEN:-}}
+      # Reads from .env file: TURSO_CONNECTION_URL
+      - TURSO_CONNECTION_URL=${TURSO_CONNECTION_URL:-}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN:-}
       - CORS_ORIGIN=*
       - NODE_ENV=production
       # These read from host environment (populated by .env file)
@@ -56,18 +78,30 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
+    networks:
+      - safeurl-network
+    # Resource limits (works in both regular compose and Swarm mode)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
   fetcher:
     build:
       context: .
       dockerfile: apps/fetcher/Dockerfile
+      cache_from:
+        - safeurl-fetcher:latest
     image: safeurl-fetcher:latest
+    container_name: safeurl-fetcher-builder
     # Fetcher is an ephemeral container spawned by worker, not a long-running service
     # This service exists only to build the image - it exits immediately after build
-    # Load environment variables from .env file for documentation/completeness
-    # (Worker passes these to fetcher containers at runtime)
-    env_file:
-      - .env
+    # Environment variables are passed by worker at runtime when spawning containers
     environment:
       # OpenRouter API Key - required for Mastra agent analysis
       # Get your API key from: https://openrouter.ai/keys
@@ -82,16 +116,18 @@ services:
     restart: "no"
     # Dummy command that exits immediately - image is built but service doesn't run
     command: ["echo", "Fetcher image built successfully"]
+    networks:
+      - safeurl-network
 
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
-    image: safeurl/worker
-    # Load environment variables from .env file (if it exists)
-    # Docker Compose also automatically loads .env from project root
-    env_file:
-      - .env
+      cache_from:
+        - safeurl/worker:latest
+    image: safeurl/worker:latest
+    container_name: safeurl-worker
+    # Docker Compose automatically loads .env from project root
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -113,7 +149,7 @@ services:
       - NODE_ENV=production
     volumes:
       # Mount Docker socket so worker can spawn containers
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -122,8 +158,25 @@ services:
       fetcher:
         condition: service_started
     restart: unless-stopped
+    networks:
+      - safeurl-network
+    # Resource limits (works in both regular compose and Swarm mode)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+networks:
+  safeurl-network:
+    driver: bridge
+    name: safeurl-network
 
 volumes:
   redis-data:
+    name: safeurl-redis-data
   # Database: Turso (libSQL) - no Docker volume needed
-  # Services connect directly to Turso cloud via DATABASE_URL
+  # Services connect directly to Turso cloud via TURSO_CONNECTION_URL

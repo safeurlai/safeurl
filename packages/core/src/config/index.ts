@@ -223,8 +223,8 @@ export function loadEnvConfig(
     const config: Partial<EnvConfig> = {
       nodeEnv,
       database: {
-        url: env.DATABASE_URL || "",
-        authToken: env.DATABASE_AUTH_TOKEN,
+        url: env.TURSO_CONNECTION_URL || "",
+        authToken: env.TURSO_AUTH_TOKEN,
         maxConnections: defaults.database.maxConnections,
       },
       redis: {
@@ -312,8 +312,8 @@ export function getConfigErrorMessages(errors: z.ZodError): string[] {
  */
 function getEnvVarName(path: string): string {
   const mapping: Record<string, string> = {
-    "database.url": "DATABASE_URL",
-    "database.authToken": "DATABASE_AUTH_TOKEN",
+    "database.url": "TURSO_CONNECTION_URL",
+    "database.authToken": "TURSO_AUTH_TOKEN",
     "redis.url": "REDIS_URL",
     "redis.password": "REDIS_PASSWORD",
     "clerk.secretKey": "CLERK_SECRET_KEY",

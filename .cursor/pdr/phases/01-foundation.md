@@ -136,8 +136,8 @@ packages/db/
 # Database (Turso/libSQL)
 # For local development, you can use a local file: file:./local.db
 # For production, use your Turso database URL
-DATABASE_URL=libsql://your-database.turso.io
-DATABASE_AUTH_TOKEN=your-turso-auth-token
+TURSO_CONNECTION_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your-turso-auth-token
 
 # Redis/Queue
 # Local development uses Docker Compose Redis service

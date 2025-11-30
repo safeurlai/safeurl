@@ -60,7 +60,8 @@ All endpoints are publicly accessible without authentication.
 
 ```bash
 PORT=8080                          # Server port
-DATABASE_URL=file:./local.db      # Turso database URL
+TURSO_CONNECTION_URL=file:./local.db      # Turso database URL
+TURSO_AUTH_TOKEN=                 # Turso auth token (optional for local)
 REDIS_HOST=localhost              # Redis host
 REDIS_PORT=6379                   # Redis port
 REDIS_PASSWORD=                   # Redis password (optional)

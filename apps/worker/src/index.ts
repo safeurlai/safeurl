@@ -36,7 +36,7 @@ async function main() {
   console.log("Starting worker service...");
 
   // Validate required environment variables
-  const requiredEnvVars = ["DATABASE_URL"];
+  const requiredEnvVars = ["TURSO_CONNECTION_URL"];
   const missingEnvVars = requiredEnvVars.filter(
     (varName) => !process.env[varName],
   );
