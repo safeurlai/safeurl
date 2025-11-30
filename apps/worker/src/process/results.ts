@@ -3,7 +3,6 @@ import { wrapDbQuery } from "@safeurl/core/result";
 import { db } from "../lib/db";
 import { scanResults, auditLogs } from "@safeurl/db";
 import { AuditLogger, type AuditLogError } from "@safeurl/core/audit";
-import type { ScanResult } from "@safeurl/core/schemas";
 import type { AuditLogCreation } from "@safeurl/core/audit";
 import { eq } from "drizzle-orm";
 import {
