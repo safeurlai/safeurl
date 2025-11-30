@@ -19,19 +19,10 @@ COPY --from=deps /app/apps/fetcher ./apps/fetcher
 
 WORKDIR /app
 
-# Install Playwright browsers (Chromium only for screenshot analysis)
+# Install Playwright browsers (Chromium headless shell only for screenshot analysis)
 # Playwright is in packages/mastra/devDependencies, installed via bun install
-# Execute playwright CLI script directly using bun
-# The --with-deps flag installs both browser binaries and system dependencies
-RUN echo "Installing Playwright Chromium browser..." && \
-    cd /app && \
-    (bun node_modules/.bin/playwright install chromium --with-deps 2>/dev/null || \
-     bun packages/mastra/node_modules/.bin/playwright install chromium --with-deps 2>/dev/null || \
-     bun node_modules/playwright/cli.js install chromium --with-deps 2>/dev/null || \
-     { echo "Error: Could not find or execute playwright. Trying alternative..." && \
-       cd packages/mastra && \
-       bun node_modules/.bin/playwright install chromium --with-deps; }) && \
-    echo "Playwright Chromium installed successfully"
+# Using --only-shell since we only run headless (smaller, faster install)
+RUN bun packages/mastra/node_modules/.bin/playwright install chromium --with-deps --only-shell
 
 WORKDIR /app/apps/fetcher
 
