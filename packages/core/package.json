@@ -12,10 +12,13 @@
     "./audit": "./src/audit/index.ts",
     "./types": "./src/types/index.ts",
     "./utils": "./src/utils/index.ts",
-    "./config": "./src/config/index.ts"
+    "./config": "./src/config/index.ts",
+    "./logger": "./src/logger/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:logger": "bun test src/logger/logger.test.ts",
     "lint": "echo 'Linting not configured yet'"
   },
   "dependencies": {
