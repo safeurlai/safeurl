@@ -37,11 +37,11 @@ if (result.success) {
 ### Result Types (neverthrow)
 
 ```typescript
-import { safeFetch, safeZodParse, Result } from "@safeurl/core";
+import { Result, safeFetch, safeZodParse } from "@safeurl/core";
 
 // Type-safe fetch with discriminated errors
 const result = await safeFetch<{ data: string }>(
-  "https://api.example.com/data"
+  "https://api.example.com/data",
 );
 result.match(
   (data) => console.log("Success:", data),
@@ -51,7 +51,7 @@ result.match(
     } else if (error.type === "http") {
       console.error("HTTP error:", error.status);
     }
-  }
+  },
 );
 
 // Type-safe Zod parsing
@@ -64,7 +64,7 @@ if (parseResult.isOk()) {
 ### URL Validation
 
 ```typescript
-import { validateSsrfSafeUrl, normalizeUrl } from "@safeurl/core";
+import { normalizeUrl, validateSsrfSafeUrl } from "@safeurl/core";
 
 // SSRF-safe URL validation
 const urlResult = validateSsrfSafeUrl("https://example.com");
@@ -100,7 +100,7 @@ await logger.log({
 ### Configuration
 
 ```typescript
-import { loadEnvConfig, EnvConfig } from "@safeurl/core";
+import { EnvConfig, loadEnvConfig } from "@safeurl/core";
 
 // Load and validate environment variables
 const configResult = loadEnvConfig(process.env);

@@ -1,5 +1,5 @@
 // Shared utility functions
-import { Result, ok, err } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 
 // ============================================================================
 // Content Hash Utilities

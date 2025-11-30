@@ -41,9 +41,7 @@
       "indexes": {
         "users_created_at_idx": {
           "name": "users_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -97,9 +95,7 @@
       "indexes": {
         "wallets_user_id_unique": {
           "name": "wallets_user_id_unique",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -108,12 +104,8 @@
           "name": "wallets_user_id_users_clerk_user_id_fk",
           "tableFrom": "wallets",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "clerk_user_id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["clerk_user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -187,46 +179,32 @@
       "indexes": {
         "scan_jobs_user_id_idx": {
           "name": "scan_jobs_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "scan_jobs_state_idx": {
           "name": "scan_jobs_state_idx",
-          "columns": [
-            "state"
-          ],
+          "columns": ["state"],
           "isUnique": false
         },
         "scan_jobs_created_at_idx": {
           "name": "scan_jobs_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "scan_jobs_user_id_created_at_idx": {
           "name": "scan_jobs_user_id_created_at_idx",
-          "columns": [
-            "user_id",
-            "created_at"
-          ],
+          "columns": ["user_id", "created_at"],
           "isUnique": false
         },
         "scan_jobs_url_idx": {
           "name": "scan_jobs_url_idx",
-          "columns": [
-            "url"
-          ],
+          "columns": ["url"],
           "isUnique": false
         },
         "scan_jobs_state_created_at_idx": {
           "name": "scan_jobs_state_created_at_idx",
-          "columns": [
-            "state",
-            "created_at"
-          ],
+          "columns": ["state", "created_at"],
           "isUnique": false
         }
       },
@@ -235,12 +213,8 @@
           "name": "scan_jobs_user_id_users_clerk_user_id_fk",
           "tableFrom": "scan_jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "clerk_user_id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["clerk_user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -341,31 +315,22 @@
       "indexes": {
         "scan_results_content_hash_idx": {
           "name": "scan_results_content_hash_idx",
-          "columns": [
-            "content_hash"
-          ],
+          "columns": ["content_hash"],
           "isUnique": false
         },
         "scan_results_created_at_idx": {
           "name": "scan_results_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "scan_results_risk_score_idx": {
           "name": "scan_results_risk_score_idx",
-          "columns": [
-            "risk_score"
-          ],
+          "columns": ["risk_score"],
           "isUnique": false
         },
         "scan_results_risk_score_created_at_idx": {
           "name": "scan_results_risk_score_created_at_idx",
-          "columns": [
-            "risk_score",
-            "created_at"
-          ],
+          "columns": ["risk_score", "created_at"],
           "isUnique": false
         }
       },
@@ -374,12 +339,8 @@
           "name": "scan_results_job_id_scan_jobs_id_fk",
           "tableFrom": "scan_results",
           "tableTo": "scan_jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -464,38 +425,27 @@
       "indexes": {
         "audit_logs_scan_job_id_idx": {
           "name": "audit_logs_scan_job_id_idx",
-          "columns": [
-            "scan_job_id"
-          ],
+          "columns": ["scan_job_id"],
           "isUnique": false
         },
         "audit_logs_timestamp_idx": {
           "name": "audit_logs_timestamp_idx",
-          "columns": [
-            "timestamp"
-          ],
+          "columns": ["timestamp"],
           "isUnique": false
         },
         "audit_logs_url_accessed_idx": {
           "name": "audit_logs_url_accessed_idx",
-          "columns": [
-            "url_accessed"
-          ],
+          "columns": ["url_accessed"],
           "isUnique": false
         },
         "audit_logs_scan_job_id_timestamp_idx": {
           "name": "audit_logs_scan_job_id_timestamp_idx",
-          "columns": [
-            "scan_job_id",
-            "timestamp"
-          ],
+          "columns": ["scan_job_id", "timestamp"],
           "isUnique": false
         },
         "audit_logs_content_hash_idx": {
           "name": "audit_logs_content_hash_idx",
-          "columns": [
-            "content_hash"
-          ],
+          "columns": ["content_hash"],
           "isUnique": false
         }
       },
@@ -504,12 +454,8 @@
           "name": "audit_logs_scan_job_id_scan_jobs_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "scan_jobs",
-          "columnsFrom": [
-            "scan_job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scan_job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

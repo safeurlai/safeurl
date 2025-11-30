@@ -1,8 +1,8 @@
 import type {
-  ScanResponse,
   CreateScanRequest,
   CreditBalanceResponse,
   PurchaseCreditsRequest,
+  ScanResponse,
 } from "@safeurl/core/schemas";
 
 /**
@@ -24,7 +24,7 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     // Use Next.js proxy route instead of direct backend URL
     const url = this.getProxyUrl(endpoint);
@@ -48,7 +48,7 @@ class ApiClient {
         throw new ApiError(
           error.error?.code || "unknown_error",
           error.error?.message || "An error occurred",
-          error.error?.details
+          error.error?.details,
         );
       }
 
@@ -64,7 +64,7 @@ class ApiClient {
         throw new ApiError(
           "network_error",
           `Failed to connect to API proxy. Please ensure the Next.js server is running.`,
-          { originalError: error.message }
+          { originalError: error.message },
         );
       }
 
@@ -72,14 +72,14 @@ class ApiClient {
       throw new ApiError(
         "unknown_error",
         error instanceof Error ? error.message : "An unexpected error occurred",
-        error
+        error,
       );
     }
   }
 
   // Scans endpoints
   async createScan(
-    request: CreateScanRequest
+    request: CreateScanRequest,
   ): Promise<{ id: string; state: string }> {
     return this.request("/v1/scans", {
       method: "POST",
@@ -117,7 +117,11 @@ class ApiClient {
  * API error class
  */
 export class ApiError extends Error {
-  constructor(public code: string, message: string, public details?: unknown) {
+  constructor(
+    public code: string,
+    message: string,
+    public details?: unknown,
+  ) {
     super(message);
     this.name = "ApiError";
   }

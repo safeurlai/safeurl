@@ -1,5 +1,5 @@
-import { Elysia } from "elysia";
 import { Result } from "@safeurl/core/result";
+import { Elysia } from "elysia";
 
 /**
  * Error response format
@@ -20,13 +20,14 @@ interface ErrorResponse {
 function getStatusCode(error: unknown): number {
   if (error && typeof error === "object" && "code" in error) {
     const code = String(error.code);
-    
+
     // Handle Result type errors
     if (code.includes("validation")) return 400;
     if (code.includes("not_found")) return 404;
-    if (code.includes("payment") || code.includes("insufficient_credits")) return 402;
+    if (code.includes("payment") || code.includes("insufficient_credits"))
+      return 402;
   }
-  
+
   return 500;
 }
 
@@ -58,15 +59,16 @@ function getErrorMessage(error: unknown): string {
  */
 function formatErrorResponse(
   error: unknown,
-  requestId?: string
+  requestId?: string,
 ): ErrorResponse {
   return {
     error: {
       code: getErrorCode(error),
       message: getErrorMessage(error),
-      details: error && typeof error === "object" && "details" in error
-        ? error.details
-        : undefined,
+      details:
+        error && typeof error === "object" && "details" in error
+          ? error.details
+          : undefined,
     },
     timestamp: new Date().toISOString(),
     requestId,
@@ -80,7 +82,8 @@ function formatErrorResponse(
 export const errorHandlerPlugin = new Elysia()
   .onError(({ code, error, set, request }) => {
     // Generate request ID if not present
-    const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+    const requestId =
+      request.headers.get("x-request-id") || crypto.randomUUID();
 
     // Handle Result type errors
     if (error && typeof error === "object" && "error" in error) {
@@ -99,7 +102,7 @@ export const errorHandlerPlugin = new Elysia()
           message: "Request validation failed",
           details: error,
         },
-        requestId
+        requestId,
       );
     }
 
@@ -111,15 +114,14 @@ export const errorHandlerPlugin = new Elysia()
           code: "not_found",
           message: "Resource not found",
         },
-        requestId
+        requestId,
       );
     }
-
 
     // Default error handling
     const statusCode = getStatusCode(error);
     set.status = statusCode;
-    
+
     // Don't expose internal errors in production
     const isDevelopment = process.env.NODE_ENV === "development";
     const message = isDevelopment
@@ -132,12 +134,12 @@ export const errorHandlerPlugin = new Elysia()
         message,
         details: isDevelopment ? error : undefined,
       },
-      requestId
+      requestId,
     );
   })
   .onAfterHandle(({ set, request }) => {
     // Add request ID to response headers
-    const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+    const requestId =
+      request.headers.get("x-request-id") || crypto.randomUUID();
     set.headers["x-request-id"] = requestId;
   });
-

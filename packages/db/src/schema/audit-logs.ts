@@ -1,5 +1,6 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
 import { scanJobs } from "./scan-jobs";
 
 /**
@@ -47,11 +48,11 @@ export const auditLogs = sqliteTable(
     // Composite index for job lookup with timestamp (most recent first)
     index("audit_logs_scan_job_id_timestamp_idx").on(
       table.scanJobId,
-      table.timestamp
+      table.timestamp,
     ),
     // Index on contentHash for deduplication queries
     index("audit_logs_content_hash_idx").on(table.contentHash),
-  ]
+  ],
 );
 
 export type AuditLog = typeof auditLogs.$inferSelect;

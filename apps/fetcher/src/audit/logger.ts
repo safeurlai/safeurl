@@ -1,10 +1,10 @@
 import {
   AuditLogCreation,
   auditLogCreationSchema,
-  validateMetadataOnly,
-  Result,
-  ok,
   err,
+  ok,
+  Result,
+  validateMetadataOnly,
 } from "@safeurl/core";
 
 export interface AuditLogInput {
@@ -27,7 +27,7 @@ export interface AuditLogError {
 }
 
 export async function createAuditLog(
-  input: AuditLogInput
+  input: AuditLogInput,
 ): Promise<Result<void, AuditLogError>> {
   const metadataValidation = validateMetadataOnly(input);
   if (!metadataValidation.valid) {
@@ -74,4 +74,3 @@ export async function createAuditLog(
     });
   }
 }
-

@@ -1,11 +1,11 @@
 import {
-  validateSsrfSafeUrl,
-  safeFetch,
-  generateContentHash,
-  Result,
-  err,
-  ok,
   FetchError as CoreFetchError,
+  err,
+  generateContentHash,
+  ok,
+  Result,
+  safeFetch,
+  validateSsrfSafeUrl,
 } from "@safeurl/core";
 
 export interface FetchOptions {
@@ -33,7 +33,7 @@ export interface FetcherFetchError {
 
 export async function fetchUrl(
   url: string,
-  options: FetchOptions
+  options: FetchOptions,
 ): Promise<Result<FetchResult, FetcherFetchError>> {
   const urlValidation = validateSsrfSafeUrl(url);
   if (urlValidation.isErr()) {
@@ -62,10 +62,7 @@ export async function fetchUrl(
     if (fetchResult.isErr()) {
       const error = fetchResult.error;
       if (error.type === "network") {
-        if (
-          error.cause instanceof Error &&
-          error.cause.name === "AbortError"
-        ) {
+        if (error.cause instanceof Error && error.cause.name === "AbortError") {
           return err({
             type: "timeout",
             message: `Fetch timeout after ${options.timeoutMs}ms`,
@@ -157,7 +154,7 @@ export async function fetchUrl(
 
 async function extractMetadataFromErrorResponse(
   error: CoreFetchError,
-  url: string
+  url: string,
 ): Promise<Result<FetchResult, FetcherFetchError>> {
   if (error.type === "http") {
     return ok({
@@ -177,7 +174,7 @@ async function extractMetadataFromErrorResponse(
 
 async function extractHtmlMetadata(
   html: string,
-  contentType: string | null
+  contentType: string | null,
 ): Promise<FetchResult["metadata"]> {
   const metadata: FetchResult["metadata"] = {};
 
@@ -192,14 +189,15 @@ async function extractHtmlMetadata(
     }
 
     const descMatch = html.match(
-      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i
+      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i,
     );
     if (descMatch) {
       metadata.description = descMatch[1].trim();
     }
 
     const metaTags: Record<string, string> = {};
-    const metaRegex = /<meta[^>]*name=["']([^"']+)["'][^>]*content=["']([^"']+)["']/gi;
+    const metaRegex =
+      /<meta[^>]*name=["']([^"']+)["'][^>]*content=["']([^"']+)["']/gi;
     let metaMatch;
     while ((metaMatch = metaRegex.exec(html)) !== null) {
       metaTags[metaMatch[1]] = metaMatch[2];
@@ -212,9 +210,7 @@ async function extractHtmlMetadata(
     if (linkMatches) {
       metadata.linkCount = linkMatches.length;
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 
   return metadata;
 }
-

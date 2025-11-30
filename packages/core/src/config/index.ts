@@ -1,6 +1,6 @@
 // Configuration schemas and helpers
+import { err, ok, Result } from "neverthrow";
 import { z } from "zod";
-import { Result, ok, err } from "neverthrow";
 
 // ============================================================================
 // Environment Variable Schemas
@@ -11,8 +11,17 @@ import { Result, ok, err } from "neverthrow";
  */
 export const databaseConfigSchema = z.object({
   url: z.string().url().describe("Database connection URL"),
-  authToken: z.string().min(1).optional().describe("Database authentication token"),
-  maxConnections: z.number().int().positive().default(10).describe("Maximum database connections"),
+  authToken: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Database authentication token"),
+  maxConnections: z
+    .number()
+    .int()
+    .positive()
+    .default(10)
+    .describe("Maximum database connections"),
 });
 
 /**
@@ -21,9 +30,19 @@ export const databaseConfigSchema = z.object({
 export const redisConfigSchema = z.object({
   url: z.string().url().describe("Redis connection URL"),
   password: z.string().optional().describe("Redis password (if required)"),
-  maxRetriesPerRequest: z.number().int().min(0).default(3).describe("Maximum retries per request"),
+  maxRetriesPerRequest: z
+    .number()
+    .int()
+    .min(0)
+    .default(3)
+    .describe("Maximum retries per request"),
   enableReadyCheck: z.boolean().default(true).describe("Enable ready check"),
-  connectTimeout: z.number().int().positive().default(10000).describe("Connection timeout in ms"),
+  connectTimeout: z
+    .number()
+    .int()
+    .positive()
+    .default(10000)
+    .describe("Connection timeout in ms"),
 });
 
 /**
@@ -31,20 +50,49 @@ export const redisConfigSchema = z.object({
  */
 export const clerkConfigSchema = z.object({
   secretKey: z.string().min(1).describe("Clerk secret key"),
-  publishableKey: z.string().min(1).optional().describe("Clerk publishable key"),
-  apiUrl: z.string().url().optional().describe("Clerk API URL (for custom instances)"),
+  publishableKey: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Clerk publishable key"),
+  apiUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe("Clerk API URL (for custom instances)"),
 });
 
 /**
  * LLM provider configuration schema
  */
 export const llmProviderConfigSchema = z.object({
-  provider: z.enum(["openai", "anthropic", "google", "deepseek", "kami", "ollama"]),
+  provider: z.enum([
+    "openai",
+    "anthropic",
+    "google",
+    "deepseek",
+    "kami",
+    "ollama",
+  ]),
   apiKey: z.string().min(1).describe("API key for the LLM provider"),
-  baseUrl: z.string().url().optional().describe("Base URL for the API (for custom endpoints)"),
+  baseUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe("Base URL for the API (for custom endpoints)"),
   model: z.string().min(1).describe("Model identifier"),
-  temperature: z.number().min(0).max(2).default(0.7).describe("Temperature for generation"),
-  maxTokens: z.number().int().positive().default(4096).describe("Maximum tokens to generate"),
+  temperature: z
+    .number()
+    .min(0)
+    .max(2)
+    .default(0.7)
+    .describe("Temperature for generation"),
+  maxTokens: z
+    .number()
+    .int()
+    .positive()
+    .default(4096)
+    .describe("Maximum tokens to generate"),
 });
 
 /**
@@ -53,31 +101,39 @@ export const llmProviderConfigSchema = z.object({
 export const envConfigSchema = z.object({
   // Environment
   nodeEnv: z.enum(["development", "production", "test"]).default("development"),
-  
+
   // Database
   database: databaseConfigSchema,
-  
+
   // Redis
   redis: redisConfigSchema,
-  
+
   // Clerk
   clerk: clerkConfigSchema,
-  
+
   // LLM Provider
   llm: llmProviderConfigSchema,
-  
+
   // API Configuration
-  api: z.object({
-    port: z.number().int().positive().default(8080),
-    host: z.string().default("0.0.0.0"),
-    corsOrigin: z.string().url().optional().describe("CORS origin (if needed)"),
-  }).optional(),
-  
+  api: z
+    .object({
+      port: z.number().int().positive().default(8080),
+      host: z.string().default("0.0.0.0"),
+      corsOrigin: z
+        .string()
+        .url()
+        .optional()
+        .describe("CORS origin (if needed)"),
+    })
+    .optional(),
+
   // Worker Configuration
-  worker: z.object({
-    concurrency: z.number().int().positive().default(10),
-    maxRetries: z.number().int().min(0).default(3),
-  }).optional(),
+  worker: z
+    .object({
+      concurrency: z.number().int().positive().default(10),
+      maxRetries: z.number().int().min(0).default(3),
+    })
+    .optional(),
 });
 
 // ============================================================================
@@ -155,12 +211,14 @@ export type EnvConfig = z.infer<typeof envConfigSchema>;
  * ```
  */
 export function loadEnvConfig(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
 ): Result<EnvConfig, { message: string; errors: z.ZodError }> {
   try {
     // Extract configuration from environment variables
-    const nodeEnv = (env.NODE_ENV as "development" | "production" | "test") || "development";
-    const defaults = nodeEnv === "production" ? productionDefaults : developmentDefaults;
+    const nodeEnv =
+      (env.NODE_ENV as "development" | "production" | "test") || "development";
+    const defaults =
+      nodeEnv === "production" ? productionDefaults : developmentDefaults;
 
     const config: Partial<EnvConfig> = {
       nodeEnv,
@@ -182,11 +240,14 @@ export function loadEnvConfig(
         apiUrl: env.CLERK_API_URL,
       },
       llm: {
-        provider: (env.LLM_PROVIDER as EnvConfig["llm"]["provider"]) || "openai",
+        provider:
+          (env.LLM_PROVIDER as EnvConfig["llm"]["provider"]) || "openai",
         apiKey: env.LLM_API_KEY || "",
         baseUrl: env.LLM_BASE_URL,
         model: env.LLM_MODEL || "gpt-4",
-        temperature: env.LLM_TEMPERATURE ? parseFloat(env.LLM_TEMPERATURE) : 0.7,
+        temperature: env.LLM_TEMPERATURE
+          ? parseFloat(env.LLM_TEMPERATURE)
+          : 0.7,
         maxTokens: env.LLM_MAX_TOKENS ? parseInt(env.LLM_MAX_TOKENS, 10) : 4096,
       },
       api: {
@@ -216,7 +277,8 @@ export function loadEnvConfig(
     return ok(result.data);
   } catch (error) {
     return err({
-      message: error instanceof Error ? error.message : "Failed to load configuration",
+      message:
+        error instanceof Error ? error.message : "Failed to load configuration",
       errors: error instanceof z.ZodError ? error : new z.ZodError([]),
     });
   }
@@ -234,7 +296,9 @@ export function getConfigErrorMessages(errors: z.ZodError): string[] {
   for (const issue of errors.issues) {
     const path = issue.path.join(".");
     if (issue.code === "invalid_type" && issue.received === "undefined") {
-      messages.push(`Missing required environment variable: ${getEnvVarName(path)}`);
+      messages.push(
+        `Missing required environment variable: ${getEnvVarName(path)}`,
+      );
     } else {
       messages.push(`${path}: ${issue.message}`);
     }

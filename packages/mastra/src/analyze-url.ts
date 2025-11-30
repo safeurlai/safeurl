@@ -1,12 +1,13 @@
-import { Result, err, ok } from "@safeurl/core";
-import type { RiskCategory } from "@safeurl/core";
+import type { Agent } from "@mastra/core/agent";
+import { err, ok, Result, type RiskCategory } from "@safeurl/core";
+
 import {
   createUrlSafetyAgent,
-  type UrlSafetyAgentConfig,
   generateWithDebug,
+  IMAGE_AND_TOOLS_MODEL,
   urlSafetyAnalysisSchema,
+  type UrlSafetyAgentConfig,
 } from "./agents/url-safety-agent";
-import type { Agent } from "@mastra/core/agent";
 
 export interface UrlAnalysisInput {
   url: string;
@@ -64,7 +65,7 @@ function mapCategories(agentCategories: string[]): RiskCategory[] {
     .map((cat) => AGENT_TO_CORE_CATEGORIES[cat.toLowerCase()])
     .filter(
       (cat): cat is RiskCategory =>
-        cat !== undefined && VALID_RISK_CATEGORIES.includes(cat)
+        cat !== undefined && VALID_RISK_CATEGORIES.includes(cat),
     );
 }
 
@@ -87,14 +88,13 @@ to gather additional information if needed.`;
 
 function mapAgentOutput(
   agentOutput: unknown,
-  agentResult: Awaited<ReturnType<Agent["generate"]>>
+  agentResult: Awaited<ReturnType<Agent["generate"]>>,
 ): UrlAnalysisOutput {
   if (!agentOutput || typeof agentOutput !== "object") {
     throw new Error("Agent output is not an object");
   }
 
   const output = agentOutput as Record<string, unknown>;
-  const resultAny = agentResult as any;
 
   return {
     riskScore:
@@ -115,17 +115,17 @@ function mapAgentOutput(
     indicators: Array.isArray(output.indicators)
       ? output.indicators.map((ind) => String(ind))
       : [],
-    modelUsed: resultAny.modelUsed || resultAny.model || "unknown",
+    modelUsed: IMAGE_AND_TOOLS_MODEL,
     analysisMetadata: {
-      steps: resultAny.steps?.length || 0,
-      tokensUsed: resultAny.usage?.totalTokens || 0,
+      steps: agentResult.steps?.length || 0,
+      tokensUsed: agentResult.usage?.totalTokens || 0,
     },
   };
 }
 
 export async function analyzeUrl(
   input: UrlAnalysisInput,
-  config: UrlSafetyAgentConfig
+  config: UrlSafetyAgentConfig,
 ): Promise<Result<UrlAnalysisOutput, UrlAnalysisError>> {
   try {
     if (!config.openRouterApiKey) {
@@ -152,7 +152,7 @@ export async function analyzeUrl(
           structuredOutput: {
             schema: urlSafetyAnalysisSchema,
           },
-        }
+        },
       );
     } catch (generateError: any) {
       const errorMessage = String(generateError?.message || generateError);

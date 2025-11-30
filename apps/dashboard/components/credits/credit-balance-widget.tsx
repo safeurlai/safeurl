@@ -1,5 +1,9 @@
 "use client";
 
+import { CreditCard, Plus } from "lucide-react";
+import Link from "next/link";
+
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,11 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useCreditBalance } from "~/hooks/use-api";
-import { CreditCard, Plus } from "lucide-react";
-import Link from "next/link";
 
 export function CreditBalanceWidget() {
   const { data: balance, isLoading, error, refetch } = useCreditBalance();

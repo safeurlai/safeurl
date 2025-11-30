@@ -5,6 +5,7 @@ Ephemeral container service that safely fetches URLs, performs analysis using Ma
 ## Overview
 
 The fetcher is a stateless, ephemeral container that:
+
 - Safely fetches URLs with SSRF protection
 - Extracts metadata only (no content storage)
 - Generates content hashes for audit purposes
@@ -15,6 +16,7 @@ The fetcher is a stateless, ephemeral container that:
 ## Architecture
 
 The fetcher is designed to be completely stateless:
+
 - No persistent storage
 - No content persistence
 - All content cleared from memory after processing
@@ -53,6 +55,7 @@ docker run --rm \
 ```
 
 **Required Environment Variables:**
+
 - `JOB_ID`: Job ID for tracking
 - `SCAN_URL`: URL to scan
 - `OPENROUTER_API_KEY`: OpenRouter API key (required for Mastra agent analysis)
@@ -60,6 +63,7 @@ docker run --rm \
   - Keys should start with `sk-or-v1-` or `sk-or-`
 
 **Optional Environment Variables:**
+
 - `FETCH_TIMEOUT_MS`: Fetch timeout in milliseconds (default: 30000)
 - `MAX_REDIRECT_DEPTH`: Maximum redirect depth (default: 5)
 - `DEBUG_AGENT`: Enable debug logging (set to `"true"` to enable)
@@ -134,6 +138,7 @@ docker run --rm \
 ### `fetch/url-fetcher.ts`
 
 Safely fetches URLs with:
+
 - SSRF-safe URL validation
 - Timeout enforcement
 - Content hash generation
@@ -143,6 +148,7 @@ Safely fetches URLs with:
 ### `analysis/agent.ts`
 
 Invokes Mastra agent for URL analysis:
+
 - Agent initialization
 - Structured output parsing
 - Result validation
@@ -151,6 +157,7 @@ Invokes Mastra agent for URL analysis:
 ### `audit/logger.ts`
 
 Creates audit log entries:
+
 - Metadata-only logging
 - Schema validation
 - Output to stderr (for worker capture)
@@ -158,6 +165,7 @@ Creates audit log entries:
 ### `lib/`
 
 Utility modules:
+
 - `hash.ts`: Content hash generation
 - `validation.ts`: URL validation helpers
 
@@ -197,6 +205,7 @@ bun test
 ```
 
 The smoke test verifies:
+
 - ✅ Fetcher runs successfully with valid inputs
 - ✅ Produces valid JSON output
 - ✅ Validates required parameters (job-id, url)
@@ -228,4 +237,3 @@ The fetcher is invoked by the worker service:
 - Test SSRF protection thoroughly
 - Ensure timeouts are enforced
 - Keep container image minimal for fast startup
-

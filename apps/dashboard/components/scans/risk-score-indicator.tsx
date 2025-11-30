@@ -42,7 +42,7 @@ export function RiskScoreIndicator({
           className={cn(
             getRiskColor(riskScore),
             sizeClasses[size],
-            "transition-all duration-300 rounded-full"
+            "transition-all duration-300 rounded-full",
           )}
           style={{ width: `${riskScore}%` }}
           role="progressbar"

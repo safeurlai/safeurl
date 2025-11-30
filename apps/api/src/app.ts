@@ -1,10 +1,11 @@
-import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
+import { Elysia } from "elysia";
+
+import { creditsModule } from "./modules/credits";
+import { scansModule } from "./modules/scans";
+import { errorHandlerPlugin } from "./plugins/error-handler";
 import { openApiPlugin } from "./plugins/openapi";
 import { opentelemetryPlugin } from "./plugins/opentelemetry";
-import { errorHandlerPlugin } from "./plugins/error-handler";
-import { scansModule } from "./modules/scans";
-import { creditsModule } from "./modules/credits";
 
 /**
  * Main ElysiaJS application
@@ -13,7 +14,7 @@ import { creditsModule } from "./modules/credits";
 export const app = new Elysia()
   // Global error handler (must be first)
   .use(errorHandlerPlugin)
-  
+
   // CORS configuration
   .use(
     cors({
@@ -21,15 +22,15 @@ export const app = new Elysia()
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "X-Request-ID"],
-    })
+    }),
   )
-  
+
   // OpenTelemetry observability
   .use(opentelemetryPlugin)
-  
+
   // OpenAPI documentation
   .use(openApiPlugin)
-  
+
   // Health check endpoint
   .get("/health", () => ({
     status: "ok",
@@ -37,10 +38,10 @@ export const app = new Elysia()
     service: "safeurl-api",
     version: "1.0.0",
   }))
-  
+
   // API routes with /v1 prefix
   .group("/v1", (app) => app.use(scansModule).use(creditsModule))
-  
+
   // 404 handler
   .onError(({ code, set }) => {
     if (code === "NOT_FOUND") {
@@ -56,4 +57,3 @@ export const app = new Elysia()
 
 // Export app type for OpenAPI type generation
 export type App = typeof app;
-

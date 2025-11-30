@@ -1,6 +1,11 @@
+import {
+  err,
+  ok,
+  Result,
+  scanResultSchema,
+  type RiskCategory,
+} from "@safeurl/core";
 import { analyzeUrl, type UrlAnalysisInput } from "@safeurl/mastra";
-import { Result, err, ok } from "@safeurl/core";
-import { scanResultSchema, type RiskCategory } from "@safeurl/core";
 
 export type AgentAnalysisInput = UrlAnalysisInput;
 
@@ -20,7 +25,7 @@ export interface AgentAnalysisError {
 }
 
 export async function analyzeWithAgent(
-  input: AgentAnalysisInput
+  input: AgentAnalysisInput,
 ): Promise<Result<AgentAnalysisResult, AgentAnalysisError>> {
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterApiKey) {

@@ -10,7 +10,10 @@ import { z } from "zod";
  */
 export const contentHashSchema = z
   .string()
-  .regex(/^[a-f0-9]{64}$/i, "Content hash must be a valid SHA-256 hash (64 hex characters)")
+  .regex(
+    /^[a-f0-9]{64}$/i,
+    "Content hash must be a valid SHA-256 hash (64 hex characters)",
+  )
   .describe("SHA-256 hash of the content");
 
 // ============================================================================
@@ -29,10 +32,7 @@ export const contentHashSchema = z
  */
 export const auditLogEntrySchema = z.object({
   id: z.string().uuid().describe("Unique audit log entry ID"),
-  scanJobId: z
-    .string()
-    .uuid()
-    .describe("Foreign key to scan_jobs table"),
+  scanJobId: z.string().uuid().describe("Foreign key to scan_jobs table"),
   urlAccessed: z
     .string()
     .url()
@@ -41,7 +41,9 @@ export const auditLogEntrySchema = z.object({
     .string()
     .datetime()
     .describe("ISO 8601 timestamp of when the URL was accessed"),
-  contentHash: contentHashSchema.describe("SHA-256 hash of the fetched content"),
+  contentHash: contentHashSchema.describe(
+    "SHA-256 hash of the fetched content",
+  ),
   httpStatus: z
     .number()
     .int()
@@ -106,15 +108,17 @@ export function validateMetadataOnly(data: unknown): {
  * Audit log entry creation schema
  * Used when creating a new audit log entry
  */
-export const auditLogCreationSchema = auditLogEntrySchema.omit({ id: true }).refine(
-  (data) => {
-    const validation = validateMetadataOnly(data);
-    return validation.valid;
-  },
-  {
-    message: "Audit log must not contain content fields",
-  }
-);
+export const auditLogCreationSchema = auditLogEntrySchema
+  .omit({ id: true })
+  .refine(
+    (data) => {
+      const validation = validateMetadataOnly(data);
+      return validation.valid;
+    },
+    {
+      message: "Audit log must not contain content fields",
+    },
+  );
 
 // ============================================================================
 // Type Exports
@@ -123,4 +127,3 @@ export const auditLogCreationSchema = auditLogEntrySchema.omit({ id: true }).ref
 export type ContentHash = z.infer<typeof contentHashSchema>;
 export type AuditLogEntry = z.infer<typeof auditLogEntrySchema>;
 export type AuditLogCreation = z.infer<typeof auditLogCreationSchema>;
-

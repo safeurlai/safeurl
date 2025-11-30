@@ -1,4 +1,8 @@
+import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+
+import { RiskScoreIndicator } from "~/components/scans/risk-score-indicator";
+import { Badge } from "~/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -6,10 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import { RiskScoreIndicator } from "~/components/scans/risk-score-indicator";
 import type { ScanResponse } from "~/lib/types";
-import { formatDistanceToNow } from "date-fns";
 
 interface ScanCardProps {
   scan: ScanResponse;

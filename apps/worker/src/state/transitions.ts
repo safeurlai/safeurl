@@ -1,9 +1,9 @@
-import { Result, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery } from "@safeurl/core/result";
-import { db } from "../lib/db";
-import { scanJobs } from "@safeurl/db";
-import { eq, and } from "drizzle-orm";
+import { err, ok, Result, wrapDbQuery } from "@safeurl/core/result";
 import { validateStateTransition } from "@safeurl/core/schemas";
+import { scanJobs } from "@safeurl/db";
+import { and, eq } from "drizzle-orm";
+
+import { db } from "../lib/db";
 
 /**
  * State transition error types
@@ -24,7 +24,7 @@ export interface StateTransitionError {
  */
 export async function transitionToFetching(
   jobId: string,
-  expectedVersion: number
+  expectedVersion: number,
 ): Promise<Result<void, StateTransitionError>> {
   return wrapDbQuery(async () => {
     const [job] = await db
@@ -74,7 +74,7 @@ export async function transitionToFetching(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)),
       );
 
     return ok(undefined);
@@ -94,7 +94,7 @@ export async function transitionToFetching(
  */
 export async function transitionToAnalyzing(
   jobId: string,
-  expectedVersion: number
+  expectedVersion: number,
 ): Promise<Result<void, StateTransitionError>> {
   return wrapDbQuery(async () => {
     const [job] = await db
@@ -141,7 +141,7 @@ export async function transitionToAnalyzing(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)),
       );
 
     return ok(undefined);
@@ -161,7 +161,7 @@ export async function transitionToAnalyzing(
  */
 export async function transitionToCompleted(
   jobId: string,
-  expectedVersion: number
+  expectedVersion: number,
 ): Promise<Result<void, StateTransitionError>> {
   return wrapDbQuery(async () => {
     const [job] = await db
@@ -208,7 +208,7 @@ export async function transitionToCompleted(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)),
       );
 
     return ok(undefined);
@@ -229,7 +229,7 @@ export async function transitionToCompleted(
  */
 export async function transitionToFailed(
   jobId: string,
-  expectedVersion: number
+  expectedVersion: number,
 ): Promise<Result<void, StateTransitionError>> {
   return wrapDbQuery(async () => {
     const [job] = await db
@@ -281,7 +281,7 @@ export async function transitionToFailed(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)),
       );
 
     return ok(undefined);
@@ -302,7 +302,7 @@ export async function transitionToFailed(
  */
 export async function transitionToTimedOut(
   jobId: string,
-  expectedVersion: number
+  expectedVersion: number,
 ): Promise<Result<void, StateTransitionError>> {
   return wrapDbQuery(async () => {
     const [job] = await db
@@ -349,7 +349,7 @@ export async function transitionToTimedOut(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion))
+        and(eq(scanJobs.id, jobId), eq(scanJobs.version, expectedVersion)),
       );
 
     return ok(undefined);
@@ -368,7 +368,7 @@ export async function transitionToTimedOut(
  * Get job by ID with current version
  */
 export async function getJobWithVersion(
-  jobId: string
+  jobId: string,
 ): Promise<
   Result<
     { job: typeof scanJobs.$inferSelect; version: number },

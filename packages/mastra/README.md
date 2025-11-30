@@ -49,8 +49,8 @@ const result = await urlSafetyAgent.generate({
 ```typescript
 import {
   contentExtractionTool,
-  screenshotAnalysisTool,
   reputationCheckTool,
+  screenshotAnalysisTool,
 } from "@safeurl/mastra";
 
 // Extract content metadata
@@ -81,6 +81,7 @@ const result = await mastra.agents.urlSafetyAgent.generate({ ... });
 ## Agent Configuration
 
 The URL Safety Agent uses:
+
 - **Model**: `openrouter/qwen/qwen-2.5-vl-72b-instruct` (Qwen2.5-VL-72B-Instruct)
 - **Max Steps**: 10 (allows iterative tool usage)
 - **Structured Output**: Zod schema for consistent risk assessment
@@ -90,12 +91,14 @@ The URL Safety Agent uses:
 ### Content Extraction Tool
 
 Extracts metadata from URLs without storing content:
+
 - Title and description (from HTML)
 - Content hash (SHA-256)
 - HTTP status and headers
 - Content type
 
 **Features**:
+
 - SSRF-safe URL validation
 - Privacy-first (only metadata, no content storage)
 - Type-safe with neverthrow error handling
@@ -103,12 +106,14 @@ Extracts metadata from URLs without storing content:
 ### Screenshot Analysis Tool
 
 Takes screenshots and performs visual analysis:
+
 - Screenshot hash (not the image itself)
 - Suspicious element detection
 - Layout analysis
 - Form and link detection
 
 **Features**:
+
 - Uses Playwright for browser automation
 - Ephemeral browser instances
 - Visual pattern detection
@@ -117,12 +122,14 @@ Takes screenshots and performs visual analysis:
 ### Reputation Check Tool
 
 Checks domain reputation using heuristics:
+
 - Reputation score (0-100)
 - SSL certificate validation
 - Suspicious pattern detection
 - Threat intelligence (basic)
 
 **Features**:
+
 - Heuristic-based analysis
 - SSL validation
 - Domain pattern detection
@@ -170,6 +177,7 @@ src/
 ## Model Selection
 
 Uses Qwen2.5-VL-72B-Instruct via OpenRouter:
+
 - **Vision-Language Capabilities**: Can analyze screenshots and visual content
 - **Cost-Effective**: Competitive pricing for high-quality analysis
 - **Multi-Modal**: Supports text, images, and structured data
@@ -188,8 +196,8 @@ bun run lint
 ## Used By
 
 This package is consumed by:
+
 - `@safeurl/worker` - Worker service that processes scan jobs
 - `@safeurl/fetcher` - Ephemeral fetcher containers
 
 The agent is invoked during the analysis phase of URL scanning workflows.
-

@@ -7,4 +7,3 @@ export type {
   ScanJobState,
   RiskCategory,
 } from "@safeurl/core/schemas";
-

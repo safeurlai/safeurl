@@ -1,5 +1,5 @@
-import { Elysia } from "elysia";
 import { openapi } from "@elysiajs/openapi";
+import { Elysia } from "elysia";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 /**
@@ -55,6 +55,5 @@ export const openApiPlugin = new Elysia().use(
     },
     // Customize OpenAPI JSON path
     jsonPath: "/openapi/json",
-  })
+  }),
 );
-

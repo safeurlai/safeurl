@@ -1,7 +1,8 @@
 import { Mastra } from "@mastra/core/mastra";
+
 import {
-  urlSafetyAgent,
   createUrlSafetyAgent,
+  urlSafetyAgent,
   type UrlSafetyAgentConfig,
 } from "./agents/url-safety-agent";
 

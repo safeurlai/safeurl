@@ -176,4 +176,3 @@ apps/mcp-server/
 - Test with MCP clients (Claude, Cursor, etc.)
 - Document tool usage
 - Handle rate limiting gracefully
-

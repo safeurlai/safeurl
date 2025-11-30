@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+
 import { useScan } from "~/hooks/use-api";
 import type { ScanResponse } from "~/lib/types";
 

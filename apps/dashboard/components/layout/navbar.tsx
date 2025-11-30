@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  SignInButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
+  SignInButton,
+  SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
+import { Home, Settings, Shield } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { Shield, Settings, Home } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },

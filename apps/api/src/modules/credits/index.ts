@@ -1,8 +1,9 @@
 import { Elysia } from "elysia";
+
 import {
-  purchaseCreditsRequestSchema,
   creditBalanceResponseSchema,
   errorResponseSchema,
+  purchaseCreditsRequestSchema,
   purchaseCreditsResponseSchema,
 } from "./schemas";
 import { getCreditBalance, purchaseCredits } from "./service";
@@ -41,7 +42,7 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
 
         const balance = result.value;
         console.log(
-          `[GET /v1/credits] Success, returning balance: ${balance.balance}`
+          `[GET /v1/credits] Success, returning balance: ${balance.balance}`,
         );
         return {
           balance: balance.balance,
@@ -77,7 +78,7 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
         200: creditBalanceResponseSchema,
         500: errorResponseSchema,
       },
-    }
+    },
   )
   .post(
     "/purchase",
@@ -139,5 +140,5 @@ export const creditsModule = new Elysia({ prefix: "/credits" })
         402: errorResponseSchema,
         500: errorResponseSchema,
       },
-    }
+    },
   );

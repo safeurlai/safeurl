@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { createTool } from "@mastra/core/tools";
-import { extractDomain } from "@safeurl/core/utils";
-import { Result, ok, err } from "neverthrow";
 import { safeFetch } from "@safeurl/core/result";
+import { extractDomain } from "@safeurl/core/utils";
+import { err, ok, Result } from "neverthrow";
+import { z } from "zod";
 
 const reputationCheckInputSchema = z.object({
   domain: z.string(),
@@ -28,7 +28,7 @@ const reputationCheckOutputSchema = z.object({
 });
 
 async function executeReputationCheck(
-  input: z.infer<typeof reputationCheckInputSchema>
+  input: z.infer<typeof reputationCheckInputSchema>,
 ): Promise<Result<z.infer<typeof reputationCheckOutputSchema>, string>> {
   let domain: string;
   if (input.url) {

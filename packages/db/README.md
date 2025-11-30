@@ -5,6 +5,7 @@ Centralized database package for the SafeURL monorepo. All database access acros
 ## Overview
 
 This package provides:
+
 - **Single source of truth** for database access
 - **Turso/libSQL** database client (supports both local SQLite and Turso Cloud)
 - **Drizzle ORM** schema definitions
@@ -22,22 +23,13 @@ import { db } from "@safeurl/db";
 ### Import Schemas
 
 ```typescript
-import { 
-  scanJobs, 
-  scanResults, 
-  users, 
-  wallets, 
-  auditLogs 
-} from "@safeurl/db";
+import { auditLogs, scanJobs, scanResults, users, wallets } from "@safeurl/db";
 ```
 
 ### Import Utilities
 
 ```typescript
-import { 
-  executeRawSQL, 
-  executeRawSQLString 
-} from "@safeurl/db";
+import { executeRawSQL, executeRawSQLString } from "@safeurl/db";
 ```
 
 ### Example Usage
@@ -133,14 +125,17 @@ bun run db:studio
 ⚠️ **DO NOT** create database clients directly in services. Always use `@safeurl/db`.
 
 ❌ **Wrong:**
+
 ```typescript
 import { createClient } from "@libsql/client";
 const client = createClient({...});
 ```
 
 ✅ **Correct:**
+
 ```typescript
 import { db } from "@safeurl/db";
+
 // Use db directly
 ```
 
@@ -175,4 +170,3 @@ test("my test", async () => {
   // ...
 });
 ```
-

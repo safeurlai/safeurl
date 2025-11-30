@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { createTool } from "@mastra/core/tools";
-import { validateSsrfSafeUrl, generateContentHash } from "@safeurl/core/utils";
-import { Result, ok, err } from "neverthrow";
-import { chromium, Browser, Page } from "playwright";
+import { generateContentHash, validateSsrfSafeUrl } from "@safeurl/core/utils";
+import { err, ok, Result } from "neverthrow";
+import { Browser, chromium, Page } from "playwright";
+import { z } from "zod";
 
 const screenshotAnalysisInputSchema = z.object({
   url: z.string().url(),
@@ -24,17 +24,19 @@ const screenshotAnalysisOutputSchema = z.object({
     layoutAnalysis: z.string(),
   }),
   metadata: z.object({
-    viewport: z.object({
-      width: z.number(),
-      height: z.number(),
-    }).optional(),
+    viewport: z
+      .object({
+        width: z.number(),
+        height: z.number(),
+      })
+      .optional(),
     contentType: z.string().optional(),
     isImageUrl: z.boolean().optional(),
   }),
 });
 
 export async function executeScreenshotAnalysis(
-  input: z.infer<typeof screenshotAnalysisInputSchema>
+  input: z.infer<typeof screenshotAnalysisInputSchema>,
 ): Promise<Result<z.infer<typeof screenshotAnalysisOutputSchema>, string>> {
   const urlValidation = validateSsrfSafeUrl(input.url);
   if (urlValidation.isErr()) {
@@ -84,7 +86,7 @@ export async function executeScreenshotAnalysis(
     const hashResult = await generateContentHash(screenshotBase64);
     if (hashResult.isErr()) {
       return err(
-        `Failed to generate screenshot hash: ${hashResult.error.message}`
+        `Failed to generate screenshot hash: ${hashResult.error.message}`,
       );
     }
     const screenshotHash = hashResult.value;
@@ -110,7 +112,7 @@ export async function executeScreenshotAnalysis(
 
       const textLength = pageText.length;
       if (textLength < 100) layoutAnalysis = "Minimal content";
-      else if (textLength > 10000)       layoutAnalysis = "Extensive content";
+      else if (textLength > 10000) layoutAnalysis = "Extensive content";
     }
 
     const formCount = await page.locator("form").count();
@@ -134,7 +136,7 @@ export async function executeScreenshotAnalysis(
     return err(
       `Screenshot analysis failed: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   } finally {
     if (page) {

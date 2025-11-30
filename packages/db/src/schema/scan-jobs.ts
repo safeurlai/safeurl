@@ -1,5 +1,6 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
 import { users } from "./users";
 
 /**
@@ -57,7 +58,7 @@ export const scanJobs = sqliteTable(
     index("scan_jobs_url_idx").on(table.url),
     // Composite index for worker queries: state + createdAt (for processing oldest jobs first)
     index("scan_jobs_state_created_at_idx").on(table.state, table.createdAt),
-  ]
+  ],
 );
 
 export type ScanJob = typeof scanJobs.$inferSelect;

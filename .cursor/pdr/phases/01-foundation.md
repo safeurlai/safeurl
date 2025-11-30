@@ -22,6 +22,7 @@ Set up the Bun monorepo structure, initialize core packages, and configure the d
 ### Root `package.json` Structure
 
 ✅ Created with workspace configuration:
+
 - Workspaces: `apps/*`, `packages/*`
 - Scripts: dev, build, test, lint, typecheck
 - Database scripts: db:generate, db:migrate, db:studio
@@ -52,6 +53,7 @@ Set up the Bun monorepo structure, initialize core packages, and configure the d
 ### Package Structure
 
 ✅ Created:
+
 ```
 packages/core/
 ├── package.json
@@ -91,6 +93,7 @@ packages/core/
 - [x] Configure schema path
 
 ✅ Created:
+
 ```
 packages/db/
 ├── package.json
@@ -115,6 +118,7 @@ packages/db/
 ### Docker Compose Setup
 
 ✅ Created `docker-compose.yml` with:
+
 - Redis service (port 6379)
 - Volume persistence
 - Health checks

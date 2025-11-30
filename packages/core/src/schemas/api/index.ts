@@ -57,7 +57,7 @@ export const createScanRequestSchema = z.object({
       {
         message:
           "URL must be a valid public HTTP/HTTPS URL (no private/internal IPs)",
-      }
+      },
     ),
   metadata: z
     .record(z.string(), z.unknown())

@@ -189,11 +189,11 @@ Set up Docker configurations, Tilt for local development, and optional Kubernete
 ### Ingress Configuration
 
 - [ ] **API Ingress**:
-  - [ ] Route /v1/* to API service
+  - [ ] Route /v1/\* to API service
   - [ ] TLS configuration
   - [ ] Rate limiting
 - [ ] **Dashboard Ingress**:
-  - [ ] Route /* to dashboard service
+  - [ ] Route /\* to dashboard service
   - [ ] TLS configuration
   - [ ] Authentication (via Clerk)
 
@@ -221,4 +221,3 @@ Set up Docker configurations, Tilt for local development, and optional Kubernete
 - Keep Kubernetes configs simple initially
 - Use external secret management in production
 - Set up monitoring and alerting
-

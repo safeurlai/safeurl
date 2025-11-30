@@ -1,9 +1,9 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { CreditPurchase } from "~/components/settings/credit-purchase";
-import { ApiKeyManagement } from "~/components/settings/api-key-management";
 import { AccountSettings } from "~/components/settings/account-settings";
+import { ApiKeyManagement } from "~/components/settings/api-key-management";
+import { CreditPurchase } from "~/components/settings/credit-purchase";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 export function SettingsContent() {
   return (

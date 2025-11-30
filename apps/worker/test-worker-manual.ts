@@ -2,20 +2,25 @@
 
 /**
  * Manual worker test script
- * 
+ *
  * This script creates a test job and monitors the worker processing it.
  * Useful for quick verification that the worker is functioning.
- * 
+ *
  * Usage:
  *   1. Start Redis: docker-compose up -d redis (or redis-server)
  *   2. Start worker in another terminal: cd apps/worker && bun dev
  *   3. Run this script: bun run apps/worker/test-worker-manual.ts
  */
-
+import {
+  createDatabase,
+  executeRawSQLString,
+  scanJobs,
+  users,
+  wallets,
+} from "@safeurl/db";
 import { Queue } from "bullmq";
-import Redis from "ioredis";
-import { createDatabase, scanJobs, wallets, users, executeRawSQLString } from "@safeurl/db";
 import { eq } from "drizzle-orm";
+import Redis from "ioredis";
 
 // Create database instance
 const dbInstance = createDatabase({
@@ -43,7 +48,7 @@ async function setupTestUser() {
   try {
     await executeRawSQLString(
       dbInstance,
-      `INSERT OR IGNORE INTO users (clerk_user_id) VALUES ('${TEST_USER_ID}')`
+      `INSERT OR IGNORE INTO users (clerk_user_id) VALUES ('${TEST_USER_ID}')`,
     );
   } catch (error) {
     try {
@@ -190,4 +195,3 @@ main().catch((error) => {
   console.error("❌ Error:", error);
   process.exit(1);
 });
-

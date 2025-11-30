@@ -61,16 +61,14 @@ export type ResultError<T> = T extends Result<unknown, infer E> ? E : never;
 /**
  * Extract the success type from a ResultAsync
  */
-export type ResultAsyncSuccess<T> = T extends Promise<Result<infer S, unknown>>
-  ? S
-  : never;
+export type ResultAsyncSuccess<T> =
+  T extends Promise<Result<infer S, unknown>> ? S : never;
 
 /**
  * Extract the error type from a ResultAsync
  */
-export type ResultAsyncError<T> = T extends Promise<Result<unknown, infer E>>
-  ? E
-  : never;
+export type ResultAsyncError<T> =
+  T extends Promise<Result<unknown, infer E>> ? E : never;
 
 // ============================================================================
 // Common Domain Types

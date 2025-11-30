@@ -24,7 +24,10 @@ export const jwtPayloadSchema = z.object({
   exp: z.number().int().positive().optional().describe("Expiration timestamp"),
   nbf: z.number().int().positive().optional().describe("Not before timestamp"),
   iss: z.string().optional().describe("Issuer"),
-  aud: z.union([z.string(), z.array(z.string())]).optional().describe("Audience"),
+  aud: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe("Audience"),
   jti: z.string().optional().describe("JWT ID"),
   // Clerk-specific claims
   org_id: z.string().optional().describe("Organization ID"),
@@ -114,7 +117,9 @@ export const transactionHistorySchema = z.object({
   amount: z
     .number()
     .int()
-    .describe("Transaction amount (positive for credits added, negative for credits used)"),
+    .describe(
+      "Transaction amount (positive for credits added, negative for credits used)",
+    ),
   type: z.enum(["purchase", "scan", "refund", "adjustment"]),
   scanJobId: z.string().uuid().nullable().optional(),
   purchaseId: z.string().uuid().nullable().optional(),
@@ -166,5 +171,7 @@ export type ApiKey = z.infer<typeof apiKeySchema>;
 export type ApiKeyValidation = z.infer<typeof apiKeyValidationSchema>;
 export type WalletBalance = z.infer<typeof walletBalanceSchema>;
 export type TransactionHistory = z.infer<typeof transactionHistorySchema>;
-export type TransactionHistoryQuery = z.infer<typeof transactionHistoryQuerySchema>;
+export type TransactionHistoryQuery = z.infer<
+  typeof transactionHistoryQuerySchema
+>;
 export type User = z.infer<typeof userSchema>;

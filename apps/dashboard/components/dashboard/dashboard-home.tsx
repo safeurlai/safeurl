@@ -1,8 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 
+import { CreditBalanceWidget } from "~/components/credits/credit-balance-widget";
+import { ScanCard } from "~/components/scans/scan-card";
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,10 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { ScanCard } from "~/components/scans/scan-card";
-import { CreditBalanceWidget } from "~/components/credits/credit-balance-widget";
 import type { ScanResponse } from "~/lib/types";
 
 export function DashboardHome() {

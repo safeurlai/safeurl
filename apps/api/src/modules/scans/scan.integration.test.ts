@@ -18,15 +18,20 @@
  *   3. Run the test: bun test apps/api/src/modules/scans/scan.integration.test.ts
  */
 
-import { test, expect, beforeAll, afterAll } from "bun:test";
-import { app } from "../../app";
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   createDatabase,
-  wallets,
-  users,
   executeRawSQL,
   executeRawSQLString,
+  users,
+  wallets,
 } from "@safeurl/db";
+import type { Worker } from "bullmq";
+import { afterAll, beforeAll, expect, test } from "bun:test";
+import { eq, sql } from "drizzle-orm";
+
+import { app } from "../../app";
 
 // Create database instance for tests
 const dbInstance = createDatabase({
@@ -34,10 +39,6 @@ const dbInstance = createDatabase({
   authToken: process.env.TURSO_AUTH_TOKEN!,
 });
 const db = dbInstance.db;
-import { eq, sql } from "drizzle-orm";
-import { readFileSync } from "fs";
-import { join } from "path";
-import type { Worker } from "bullmq";
 
 /**
  * Dynamically import and create worker
@@ -55,7 +56,7 @@ async function createWorkerInstance(): Promise<Worker | null> {
   } catch (error: any) {
     console.warn(`[TEST] Could not import worker: ${error?.message}`);
     console.warn(
-      "[TEST] Worker will need to be started externally for tests to pass"
+      "[TEST] Worker will need to be started externally for tests to pass",
     );
     return null;
   }
@@ -80,7 +81,7 @@ async function runMigrations() {
     : process.cwd();
   const migrationPath = join(
     projectRoot,
-    "packages/db/migrations/0000_flowery_jazinda.sql"
+    "packages/db/migrations/0000_flowery_jazinda.sql",
   );
 
   try {
@@ -107,7 +108,7 @@ async function runMigrations() {
             // Only log non-expected errors (but don't fail the test)
             // Some statements might fail if objects already exist, which is fine
             console.warn(
-              `Migration statement warning: ${errorMsg.substring(0, 100)}`
+              `Migration statement warning: ${errorMsg.substring(0, 100)}`,
             );
           }
         }
@@ -128,7 +129,7 @@ async function ensureTestUserCredits(credits: number = 100) {
   try {
     await executeRawSQL(
       dbInstance,
-      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${TEST_USER_ID})`
+      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${TEST_USER_ID})`,
     );
   } catch (error) {
     // User might already exist, try regular insert for non-SQLite
@@ -167,7 +168,7 @@ async function ensureTestUserCredits(credits: number = 100) {
 async function pollScanResult(
   scanId: string,
   timeoutMs: number = 120_000,
-  pollIntervalMs: number = 1000
+  pollIntervalMs: number = 1000,
 ): Promise<any> {
   const startTime = Date.now();
   let lastState = "";
@@ -176,7 +177,7 @@ async function pollScanResult(
     const response = await app.handle(
       new Request(`http://localhost/v1/scans/${scanId}`, {
         method: "GET",
-      })
+      }),
     );
 
     if (!response.ok) {
@@ -209,7 +210,7 @@ async function pollScanResult(
   }
 
   throw new Error(
-    `Scan did not complete within ${timeoutMs}ms timeout. Last state: ${lastState}`
+    `Scan did not complete within ${timeoutMs}ms timeout. Last state: ${lastState}`,
   );
 }
 
@@ -228,10 +229,10 @@ beforeAll(async () => {
     console.log("[TEST] Worker started successfully");
   } else {
     console.warn(
-      "[TEST] Worker not available - make sure Redis is running and Docker is available"
+      "[TEST] Worker not available - make sure Redis is running and Docker is available",
     );
     console.warn(
-      "[TEST] You may need to start the worker externally: cd apps/worker && bun dev"
+      "[TEST] You may need to start the worker externally: cd apps/worker && bun dev",
     );
   }
 });
@@ -264,7 +265,7 @@ test("should analyze image URL and return structured scan result", async () => {
       body: JSON.stringify({
         url: TEST_IMAGE_URL,
       }),
-    })
+    }),
   );
 
   expect(createResponse.status).toBe(201);

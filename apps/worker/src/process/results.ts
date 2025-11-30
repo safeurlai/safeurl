@@ -1,16 +1,19 @@
-import { Result, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery } from "@safeurl/core/result";
-import { db } from "../lib/db";
-import { scanResults, auditLogs } from "@safeurl/db";
-import { AuditLogger, type AuditLogError } from "@safeurl/core/audit";
-import type { AuditLogCreation } from "@safeurl/core/audit";
-import { eq } from "drizzle-orm";
 import {
+  AuditLogger,
+  type AuditLogCreation,
+  type AuditLogError,
+} from "@safeurl/core/audit";
+import { err, ok, Result, wrapDbQuery } from "@safeurl/core/result";
+import { auditLogs, scanResults } from "@safeurl/db";
+import { eq } from "drizzle-orm";
+
+import type { ContainerExecutionResult } from "../container/manager";
+import { db } from "../lib/db";
+import {
+  getJobWithVersion,
   transitionToAnalyzing,
   transitionToCompleted,
-  getJobWithVersion,
 } from "../state/transitions";
-import type { ContainerExecutionResult } from "../container/manager";
 
 /**
  * Result processing error types
@@ -61,10 +64,10 @@ class DatabaseAuditLogStorage {
 
         if (verifyResult.length === 0) {
           console.error(
-            "[AUDIT LOG] WARNING: Insert appeared successful but audit log not found in database!"
+            "[AUDIT LOG] WARNING: Insert appeared successful but audit log not found in database!",
           );
           throw new Error(
-            "Audit log insert verification failed - log not found after insert"
+            "Audit log insert verification failed - log not found after insert",
           );
         } else {
           console.log(
@@ -73,7 +76,7 @@ class DatabaseAuditLogStorage {
               id: verifyResult[0].id,
               scanJobId: verifyResult[0].scanJobId,
               urlAccessed: verifyResult[0].urlAccessed,
-            }
+            },
           );
         }
 
@@ -121,7 +124,7 @@ class DatabaseAuditLogStorage {
  */
 export async function processScanResults(
   jobId: string,
-  containerResult: ContainerExecutionResult
+  containerResult: ContainerExecutionResult,
 ): Promise<Result<void, ResultProcessingError>> {
   // Get current job version and URL
   const jobVersionResult = await getJobWithVersion(jobId);
@@ -139,7 +142,7 @@ export async function processScanResults(
   // Step 1: Transition FETCHING -> ANALYZING
   const transitionToAnalyzingResult = await transitionToAnalyzing(
     jobId,
-    version
+    version,
   );
   if (transitionToAnalyzingResult.isErr()) {
     return err({
@@ -200,7 +203,7 @@ export async function processScanResults(
       ...auditEntry,
       scanJobId: jobId,
     },
-    containerResult.result.contentHash
+    containerResult.result.contentHash,
   );
 
   if (auditResult.isErr()) {
@@ -228,7 +231,7 @@ export async function processScanResults(
   } else {
     console.log(
       "[AUDIT LOG SUCCESS] Audit log written successfully for job:",
-      jobId
+      jobId,
     );
   }
 
@@ -247,7 +250,7 @@ export async function processScanResults(
   // Step 5: Transition ANALYZING -> COMPLETED
   const transitionToCompletedResult = await transitionToCompleted(
     jobId,
-    updatedVersion
+    updatedVersion,
   );
   if (transitionToCompletedResult.isErr()) {
     return err({

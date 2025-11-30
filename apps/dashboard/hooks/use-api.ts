@@ -1,15 +1,16 @@
 import {
-  useQuery,
   useMutation,
+  useQuery,
   useQueryClient,
   type Query,
 } from "@tanstack/react-query";
+
 import { api, ApiError } from "~/lib/api";
 import type {
-  ScanResponse,
   CreateScanRequest,
   CreditBalanceResponse,
   PurchaseCreditsRequest,
+  ScanResponse,
 } from "~/lib/types";
 
 /**
@@ -45,7 +46,7 @@ export function useScan(
       | number
       | false
       | ((query: Query<ScanResponse>) => number | false);
-  }
+  },
 ) {
   useApiSetup();
 

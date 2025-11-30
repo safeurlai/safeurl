@@ -118,4 +118,3 @@ Prepare for production deployment, set up monitoring, and launch the service.
 - Keep team available during launch
 - Document any issues
 - Celebrate the launch!
-

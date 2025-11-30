@@ -1,10 +1,11 @@
 import { Elysia } from "elysia";
+
 import {
   createScanRequestSchema,
-  getScanRequestSchema,
   createScanResponseSchema,
-  scanResponseSchema,
   errorResponseSchema,
+  getScanRequestSchema,
+  scanResponseSchema,
 } from "./schemas";
 import { createScanJob, getScanJob } from "./service";
 
@@ -128,7 +129,7 @@ export const scansModule = new Elysia({ prefix: "/scans" })
       response: {
         201: createScanResponseSchema,
       },
-    }
+    },
   )
   .get(
     "/:id",
@@ -188,5 +189,5 @@ export const scansModule = new Elysia({ prefix: "/scans" })
         404: errorResponseSchema,
         500: errorResponseSchema,
       },
-    }
+    },
   );

@@ -1,14 +1,14 @@
-import { Result, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery } from "@safeurl/core/result";
-import { db, dbInstance } from "../../lib/db";
+import { err, ok, Result, wrapDbQuery } from "@safeurl/core/result";
 import {
+  executeRawSQL,
   scanJobs,
-  wallets,
   scanResults,
   users,
-  executeRawSQL,
+  wallets,
 } from "@safeurl/db";
 import { eq, sql } from "drizzle-orm";
+
+import { db, dbInstance } from "../../lib/db";
 import { scanQueue } from "../../lib/queue";
 import type { CreateScanRequest } from "./schemas";
 
@@ -21,7 +21,7 @@ async function ensureUserExists(userId: string): Promise<void> {
     // Try to insert user, ignore if already exists (SQLite specific)
     await executeRawSQL(
       dbInstance,
-      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`
+      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`,
     );
   } catch (error) {
     // If INSERT OR IGNORE fails, try regular insert (for non-SQLite databases)
@@ -60,7 +60,7 @@ interface ServiceError {
  */
 async function checkCredits(
   userId: string,
-  requiredCredits: number = 1
+  requiredCredits: number = 1,
 ): Promise<Result<{ balance: number }, ServiceError>> {
   const resultAsync = wrapDbQuery(async () => {
     // Ensure user exists
@@ -106,7 +106,7 @@ async function checkCredits(
 
     if (wallet.creditBalance < requiredCredits) {
       throw new Error(
-        `Insufficient credits. Required: ${requiredCredits}, Available: ${wallet.creditBalance}`
+        `Insufficient credits. Required: ${requiredCredits}, Available: ${wallet.creditBalance}`,
       );
     }
 
@@ -150,7 +150,7 @@ async function checkCredits(
  */
 export async function createScanJob(
   userId: string,
-  request: CreateScanRequest
+  request: CreateScanRequest,
 ): Promise<Result<{ id: string; state: string }, ServiceError>> {
   const CREDIT_COST = 1; // Cost per scan
 
@@ -190,7 +190,7 @@ export async function createScanJob(
 
       if (currentBalance < CREDIT_COST) {
         throw new Error(
-          `Insufficient credits. Required: ${CREDIT_COST}, Available: ${currentBalance}`
+          `Insufficient credits. Required: ${CREDIT_COST}, Available: ${currentBalance}`,
         );
       }
 
@@ -272,7 +272,7 @@ export async function createScanJob(
  */
 export async function getScanJob(
   jobId: string,
-  userId: string
+  userId: string,
 ): Promise<Result<ScanJobWithResult, ServiceError>> {
   const resultAsync = wrapDbQuery(async () => {
     const job = await db

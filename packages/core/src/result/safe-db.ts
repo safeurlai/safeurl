@@ -71,7 +71,7 @@ export type DatabaseError =
  * ```
  */
 export function wrapDbQuery<T>(
-  queryFn: () => Promise<T>
+  queryFn: () => Promise<T>,
 ): ResultAsync<T, DatabaseError> {
   return ResultAsync.fromPromise(queryFn(), (error): DatabaseError => {
     // Try to extract more specific error information
@@ -133,7 +133,7 @@ export function wrapDbQuery<T>(
  * ```
  */
 export function wrapDbTransaction<T>(
-  transactionFn: (tx: unknown) => Promise<T>
+  transactionFn: (tx: unknown) => Promise<T>,
 ): ResultAsync<T, DatabaseError> {
   return wrapDbQuery(() => transactionFn({} as unknown));
 }
@@ -159,7 +159,7 @@ function extractConstraintName(message: string): string | undefined {
  * Type guard to check if an error is a DatabaseConnectionError
  */
 export function isDatabaseConnectionError(
-  error: DatabaseError
+  error: DatabaseError,
 ): error is DatabaseConnectionError {
   return error.type === "connection";
 }
@@ -168,7 +168,7 @@ export function isDatabaseConnectionError(
  * Type guard to check if an error is a DatabaseQueryError
  */
 export function isDatabaseQueryError(
-  error: DatabaseError
+  error: DatabaseError,
 ): error is DatabaseQueryError {
   return error.type === "query";
 }
@@ -177,7 +177,7 @@ export function isDatabaseQueryError(
  * Type guard to check if an error is a DatabaseConstraintError
  */
 export function isDatabaseConstraintError(
-  error: DatabaseError
+  error: DatabaseError,
 ): error is DatabaseConstraintError {
   return error.type === "constraint";
 }

@@ -1,10 +1,11 @@
 import { Agent } from "@mastra/core/agent";
-import { z } from "zod";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { z } from "zod";
+
 import {
   contentExtractionTool,
-  screenshotAnalysisTool,
   reputationCheckTool,
+  screenshotAnalysisTool,
 } from "../tools";
 import { executeScreenshotAnalysis } from "../tools/screenshot-analysis";
 
@@ -22,7 +23,7 @@ function isImageContentType(contentType: string | null | undefined): boolean {
 }
 
 function extractUrlFromInput(
-  input: Parameters<typeof urlSafetyAgent.generate>[0]
+  input: Parameters<typeof urlSafetyAgent.generate>[0],
 ): string | null {
   const urlRegex = /https?:\/\/[^\s]+/i;
 
@@ -71,7 +72,7 @@ function extractUrlFromInput(
 export const urlSafetyAnalysisSchema = z.object({
   riskScore: z.number().min(0).max(100),
   categories: z.array(
-    z.enum(["phishing", "malware", "scam", "suspicious", "nsfw", "safe"])
+    z.enum(["phishing", "malware", "scam", "suspicious", "nsfw", "safe"]),
   ),
   confidence: z.number().min(0).max(1),
   reasoning: z.string(),
@@ -123,7 +124,7 @@ export const urlSafetyAgent = createUrlSafetyAgent({
 export async function generateWithDebug(
   agent: Agent,
   input: Parameters<Agent["generate"]>[0],
-  options?: Parameters<Agent["generate"]>[1]
+  options?: Parameters<Agent["generate"]>[1],
 ): Promise<ReturnType<Agent["generate"]>> {
   const detectedUrl = extractUrlFromInput(input);
 
@@ -146,10 +147,10 @@ export async function generateWithDebug(
         typeof content === "string"
           ? content
           : Array.isArray(content)
-          ? content
-              .map((c: any) => (typeof c === "string" ? c : c?.text || ""))
-              .join(" ")
-          : "";
+            ? content
+                .map((c: any) => (typeof c === "string" ? c : c?.text || ""))
+                .join(" ")
+            : "";
       const contentTypeMatch = contentStr.match(/Content Type:\s*([^\n]+)/i);
       if (contentTypeMatch) {
         contentType = contentTypeMatch[1].trim();

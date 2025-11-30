@@ -199,4 +199,3 @@ apps/dashboard/
 - Use TypeScript types from `@safeurl/core`
 - Implement proper loading and error states
 - Test with various screen sizes
-

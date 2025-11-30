@@ -1,7 +1,9 @@
 "use client";
 
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { CheckCircle2, Lock, Shield, Zap } from "lucide-react";
 import Link from "next/link";
-import { Shield, CheckCircle2, Zap, Lock } from "lucide-react";
+
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -10,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 export function LandingPage() {
   return (

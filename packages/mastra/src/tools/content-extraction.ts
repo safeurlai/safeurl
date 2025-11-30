@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { Result, ok, err } from "neverthrow";
 import { createTool } from "@mastra/core/tools";
-import { validateSsrfSafeUrl, generateContentHash } from "@safeurl/core/utils";
 import { safeFetch } from "@safeurl/core/result";
+import { generateContentHash, validateSsrfSafeUrl } from "@safeurl/core/utils";
+import { err, ok, Result } from "neverthrow";
+import { z } from "zod";
 
 const contentExtractionInputSchema = z.object({
   url: z.string().url(),
@@ -26,7 +26,7 @@ const contentExtractionOutputSchema = z.object({
 });
 
 async function executeContentExtraction(
-  input: z.infer<typeof contentExtractionInputSchema>
+  input: z.infer<typeof contentExtractionInputSchema>,
 ): Promise<Result<z.infer<typeof contentExtractionOutputSchema>, string>> {
   const urlValidation = validateSsrfSafeUrl(input.url);
   if (urlValidation.isErr()) {
@@ -53,7 +53,13 @@ async function executeContentExtraction(
 
   const response = fetchResult.value;
 
-  const essentialHeaders = ["content-type", "content-length", "server", "x-frame-options", "x-content-type-options"];
+  const essentialHeaders = [
+    "content-type",
+    "content-length",
+    "server",
+    "x-frame-options",
+    "x-content-type-options",
+  ];
   const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
     if (essentialHeaders.includes(key.toLowerCase())) {
@@ -70,7 +76,7 @@ async function executeContentExtraction(
     const hashResult = await generateContentHash(bodyText);
     if (hashResult.isErr()) {
       return err(
-        `Failed to generate content hash: ${hashResult.error.message}`
+        `Failed to generate content hash: ${hashResult.error.message}`,
       );
     }
     contentHash = hashResult.value;
@@ -78,7 +84,7 @@ async function executeContentExtraction(
     return err(
       `Failed to read response body: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 
@@ -93,13 +99,12 @@ async function executeContentExtraction(
       }
 
       const descMatch = bodyText.match(
-        /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i
+        /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i,
       );
       if (descMatch) {
         description = descMatch[1].trim();
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return ok({

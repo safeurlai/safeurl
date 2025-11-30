@@ -33,8 +33,8 @@ logger.error("Error message", { error: new Error("Something went wrong") });
 
 ```typescript
 import {
-  createLogger,
   createDebugLogger,
+  createLogger,
   createSilentLogger,
 } from "@safeurl/core/logger";
 

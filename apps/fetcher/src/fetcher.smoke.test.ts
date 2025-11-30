@@ -1,6 +1,6 @@
-import { test, expect, beforeAll } from "bun:test";
-import { spawn } from "bun";
 import { join } from "path";
+import { spawn } from "bun";
+import { beforeAll, expect, test } from "bun:test";
 
 const FETCHER_SCRIPT = join(import.meta.dir, "index.ts");
 const TEST_URL = "https://i.4cdn.org/cgl/1683919741567583.jpg";
@@ -9,7 +9,7 @@ const TEST_JOB_ID = `smoke-test-${Date.now()}`;
 beforeAll(() => {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error(
-      "OPENROUTER_API_KEY environment variable is required for tests"
+      "OPENROUTER_API_KEY environment variable is required for tests",
     );
   }
 });

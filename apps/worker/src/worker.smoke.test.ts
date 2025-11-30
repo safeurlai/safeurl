@@ -9,19 +9,19 @@
  * - Docker must be available (for container tests)
  */
 
-import { test, expect, beforeAll, afterAll } from "bun:test";
-import { createWorker } from "./queue/processor";
-import { Queue } from "bullmq";
-import Redis from "ioredis";
 import {
   createDatabase,
   scanJobs,
   scanResults,
-  wallets,
   users,
+  wallets,
 } from "@safeurl/db";
+import { Queue, type Worker } from "bullmq";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import type { Worker } from "bullmq";
+import Redis from "ioredis";
+
+import { createWorker } from "./queue/processor";
 
 const TEST_USER_ID = "test_worker_user";
 const IMAGE_URL = "https://i.4cdn.org/cgl/1683919741567583.jpg";
@@ -50,7 +50,7 @@ beforeAll(async () => {
   // Verify OPENROUTER_API_KEY is set (required for image analysis)
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error(
-      "OPENROUTER_API_KEY environment variable is required for tests"
+      "OPENROUTER_API_KEY environment variable is required for tests",
     );
   }
 
@@ -238,7 +238,7 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     console.warn(
       "Warning: Reasoning doesn't explicitly mention visual/screenshot analysis. " +
         "This might indicate screenshot capture failed or image wasn't attached to vision model. " +
-        "Make sure the Docker image was rebuilt with Playwright browsers installed."
+        "Make sure the Docker image was rebuilt with Playwright browsers installed.",
     );
   }
 
@@ -247,7 +247,7 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     throw new Error(
       "Screenshot capture failed in Docker container. " +
         "Make sure Playwright browsers are installed in the fetcher Docker image. " +
-        "Rebuild the image: docker build -t safeurl-fetcher:latest -f apps/fetcher/Dockerfile ."
+        "Rebuild the image: docker build -t safeurl-fetcher:latest -f apps/fetcher/Dockerfile .",
     );
   }
 

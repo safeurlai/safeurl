@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 /**
  * Users table
@@ -23,7 +23,7 @@ export const users = sqliteTable(
   (table) => [
     // Index on createdAt for time-based queries (user registration analytics)
     index("users_created_at_idx").on(table.createdAt),
-  ]
+  ],
 );
 
 export type User = typeof users.$inferSelect;

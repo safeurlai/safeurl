@@ -1,5 +1,5 @@
+import { err, ok, Result } from "neverthrow";
 import { z, ZodError } from "zod";
-import { Result, ok, err } from "neverthrow";
 
 // ============================================================================
 // Error Types
@@ -42,7 +42,7 @@ export interface ZodParseError<T = unknown> {
  */
 export function safeZodParse<T extends z.ZodTypeAny>(
   schema: T,
-  data: unknown
+  data: unknown,
 ): Result<z.infer<T>, ZodParseError<z.infer<T>>> {
   const result = schema.safeParse(data);
 
@@ -60,7 +60,7 @@ export function safeZodParse<T extends z.ZodTypeAny>(
  * Type guard to check if an error is a ZodParseError
  */
 export function isZodParseError<T = unknown>(
-  error: unknown
+  error: unknown,
 ): error is ZodParseError<T> {
   return (
     typeof error === "object" &&
@@ -71,4 +71,3 @@ export function isZodParseError<T = unknown>(
     error.errors instanceof ZodError
   );
 }
-

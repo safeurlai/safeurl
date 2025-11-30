@@ -1,13 +1,14 @@
-import { Worker, Job } from "bullmq";
-import Redis from "ioredis";
 import { createLogger } from "@safeurl/core/logger";
-import {
-  transitionToFetching,
-  transitionToFailed,
-  getJobWithVersion,
-} from "../state/transitions";
+import { Job, Worker } from "bullmq";
+import Redis from "ioredis";
+
 import { spawnFetcherContainer } from "../container/manager";
 import { processScanResults } from "../process/results";
+import {
+  getJobWithVersion,
+  transitionToFailed,
+  transitionToFetching,
+} from "../state/transitions";
 
 /**
  * Job payload structure
@@ -63,7 +64,7 @@ export function createWorker(): Worker<ScanJobPayload> {
           throw new Error(`Job ${jobId} was already claimed by another worker`);
         }
         throw new Error(
-          `Failed to transition to FETCHING: ${transitionResult.error.message}`
+          `Failed to transition to FETCHING: ${transitionResult.error.message}`,
         );
       }
 
@@ -151,7 +152,7 @@ export function createWorker(): Worker<ScanJobPayload> {
       // Step 3: Process results (store, audit log, transition to COMPLETED)
       const processResult = await processScanResults(
         jobId,
-        containerResult.value
+        containerResult.value,
       );
       if (processResult.isErr()) {
         // Transition to FAILED state
@@ -161,7 +162,7 @@ export function createWorker(): Worker<ScanJobPayload> {
         }
 
         throw new Error(
-          `Failed to process results: ${processResult.error.message}`
+          `Failed to process results: ${processResult.error.message}`,
         );
       }
 
@@ -178,7 +179,7 @@ export function createWorker(): Worker<ScanJobPayload> {
       removeOnFail: {
         age: 7 * 24 * 3600, // Keep failed jobs for 7 days
       },
-    }
+    },
   );
 
   // Set up event handlers

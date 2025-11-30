@@ -2,11 +2,11 @@
 
 import "./instrumentation";
 
-import { fetchUrl } from "./fetch/url-fetcher";
+import { err, ok, Result, scanResultSchema } from "@safeurl/core";
+
 import { analyzeWithAgent } from "./analysis/agent";
 import { createAuditLog } from "./audit/logger";
-import { Result, err, ok } from "@safeurl/core";
-import { scanResultSchema } from "@safeurl/core";
+import { fetchUrl } from "./fetch/url-fetcher";
 
 interface FetcherConfig {
   jobId: string;
@@ -31,11 +31,11 @@ function parseConfig(): Result<FetcherConfig, string> {
   const url = argMap.url || process.env.SCAN_URL;
   const fetchTimeoutMs = parseInt(
     argMap["fetch-timeout-ms"] || process.env.FETCH_TIMEOUT_MS || "30000",
-    10
+    10,
   );
   const maxRedirectDepth = parseInt(
     argMap["max-redirect-depth"] || process.env.MAX_REDIRECT_DEPTH || "5",
-    10
+    10,
   );
 
   if (!jobId) {
@@ -137,7 +137,7 @@ async function main() {
         JSON.stringify({
           warning: "Audit log creation failed",
           error: auditLogResult.error,
-        })
+        }),
       );
     }
 
@@ -165,7 +165,7 @@ async function main() {
         JSON.stringify({
           error: "Result validation failed",
           details: validation.error,
-        })
+        }),
       );
       process.exit(1);
     }

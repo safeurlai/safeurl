@@ -1,8 +1,9 @@
-import { test, expect } from "bun:test";
+import { expect, test } from "bun:test";
+
 import {
   createUrlSafetyAgent,
-  urlSafetyAnalysisSchema,
   generateWithDebug,
+  urlSafetyAnalysisSchema,
 } from "./url-safety-agent";
 
 test("should analyze image URL and use screenshot-analysis tool", async () => {
@@ -10,7 +11,7 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
     throw new Error(
-      "OPENROUTER_API_KEY environment variable is required for tests"
+      "OPENROUTER_API_KEY environment variable is required for tests",
     );
   }
 
@@ -31,7 +32,7 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
       structuredOutput: {
         schema: urlSafetyAnalysisSchema,
       },
-    }
+    },
   );
 
   console.log("Result object:", result.object);

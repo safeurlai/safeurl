@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { z } from "zod";
+
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,12 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import { useCreateScan } from "~/hooks/use-api";
 import { useToast } from "~/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { z } from "zod";
 
 const urlSchema = z
   .string()

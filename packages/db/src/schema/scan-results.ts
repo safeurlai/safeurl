@@ -1,5 +1,12 @@
-import { sqliteTable, text, integer, check, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  integer,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
+
 import { scanJobs } from "./scan-jobs";
 
 /**
@@ -39,12 +46,10 @@ export const scanResults = sqliteTable(
     // Check constraint: risk score must be between 0 and 100
     check(
       "risk_score_range",
-      sql`${table.riskScore} >= 0 AND ${table.riskScore} <= 100`
+      sql`${table.riskScore} >= 0 AND ${table.riskScore} <= 100`,
     ),
     // Index on contentHash for deduplication queries (finding scans of same content)
-    index("scan_results_content_hash_idx").on(
-      table.contentHash
-    ),
+    index("scan_results_content_hash_idx").on(table.contentHash),
     // Index on createdAt for time-based queries
     index("scan_results_created_at_idx").on(table.createdAt),
     // Index on riskScore for filtering high-risk results
@@ -52,11 +57,10 @@ export const scanResults = sqliteTable(
     // Composite index for querying high-risk results by time
     index("scan_results_risk_score_created_at_idx").on(
       table.riskScore,
-      table.createdAt
+      table.createdAt,
     ),
-  ]
+  ],
 );
 
 export type ScanResult = typeof scanResults.$inferSelect;
 export type NewScanResult = typeof scanResults.$inferInsert;
-

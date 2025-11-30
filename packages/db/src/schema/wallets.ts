@@ -1,12 +1,13 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
+  index,
+  integer,
   sqliteTable,
   text,
-  integer,
-  index,
-  check,
   unique,
 } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+
 import { users } from "./users";
 
 /**
@@ -37,11 +38,8 @@ export const wallets = sqliteTable(
     // Note: This also creates an index automatically in SQLite
     unique("wallets_user_id_unique").on(table.userId),
     // Check constraint: credit balance must be non-negative
-    check(
-      "credit_balance_non_negative",
-      sql`${table.creditBalance} >= 0`
-    ),
-  ]
+    check("credit_balance_non_negative", sql`${table.creditBalance} >= 0`),
+  ],
 );
 
 export type Wallet = typeof wallets.$inferSelect;

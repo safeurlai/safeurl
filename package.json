@@ -12,6 +12,7 @@
     "build": "bun run --filter='./apps/*' build",
     "test": "bun test",
     "lint": "bun run --filter='./**' lint",
+    "format": "prettier --write '**/*.{ts,tsx,js,jsx,json,css,md}'",
     "typecheck": "bun run --filter='./**' typecheck",
     "db:generate": "bun run --filter='@safeurl/db' db:generate",
     "db:migrate": "bun run --filter='@safeurl/db' db:migrate",
@@ -19,7 +20,9 @@
     "db:studio": "bun run --filter='@safeurl/db' db:studio"
   },
   "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@types/bun": "^1.3.3",
+    "prettier": "^3.7.3",
     "shadcn": "^3.5.1",
     "typescript": "^5.9.3"
   },

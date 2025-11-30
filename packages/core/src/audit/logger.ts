@@ -1,5 +1,10 @@
-import { Result, ok, err } from "neverthrow";
-import { contentHashSchema, AuditLogCreation, validateMetadataOnly } from "./schemas";
+import { err, ok, Result } from "neverthrow";
+
+import {
+  AuditLogCreation,
+  contentHashSchema,
+  validateMetadataOnly,
+} from "./schemas";
 
 // ============================================================================
 // Content Hash Generation
@@ -21,7 +26,7 @@ import { contentHashSchema, AuditLogCreation, validateMetadataOnly } from "./sch
  * ```
  */
 export async function generateContentHash(
-  content: string | ArrayBuffer | Uint8Array
+  content: string | ArrayBuffer | Uint8Array,
 ): Promise<Result<string, { message: string; cause?: unknown }>> {
   try {
     // Convert content to Uint8Array if needed
@@ -37,7 +42,9 @@ export async function generateContentHash(
     // Use Web Crypto API for SHA-256 hashing
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     // Validate the hash format
     const validation = contentHashSchema.safeParse(hashHex);
@@ -51,7 +58,10 @@ export async function generateContentHash(
     return ok(hashHex);
   } catch (error) {
     return err({
-      message: error instanceof Error ? error.message : "Failed to generate content hash",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate content hash",
       cause: error,
     });
   }
@@ -71,7 +81,7 @@ export async function generateContentHash(
  * ```
  */
 export async function generateContentHashFromStream(
-  stream: ReadableStream<Uint8Array>
+  stream: ReadableStream<Uint8Array>,
 ): Promise<Result<string, { message: string; cause?: unknown }>> {
   try {
     const reader = stream.getReader();
@@ -154,7 +164,7 @@ export class AuditLogger {
    */
   async log(
     entry: Omit<AuditLogCreation, "contentHash">,
-    contentHash?: string
+    contentHash?: string,
   ): Promise<Result<void, AuditLogError>> {
     // Validate that no content fields exist
     const validation = validateMetadataOnly(entry);
@@ -213,4 +223,3 @@ export function isValidationError(error: AuditLogError): boolean {
 export function isHashError(error: AuditLogError): boolean {
   return error.type === "hash";
 }
-

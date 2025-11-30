@@ -1,11 +1,12 @@
-import { test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+
 import {
-  createLogger,
   createDebugLogger,
+  createLogger,
   createSilentLogger,
   getDefaultLogger,
-  setDefaultLogger,
   resetDefaultLogger,
+  setDefaultLogger,
 } from "./logger";
 import type { LogLevel } from "./types";
 
@@ -351,7 +352,7 @@ test("should not include timestamps when disabled", () => {
   const messages = capture.getMessages();
   // Should not contain ISO timestamp format
   expect(messages[0].message).not.toMatch(
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
   );
 });
 

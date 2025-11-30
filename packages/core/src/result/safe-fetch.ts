@@ -79,7 +79,7 @@ export interface SafeFetchOptions extends RequestInit {
  */
 export function safeFetch<T = unknown>(
   url: string | URL,
-  options?: SafeFetchOptions
+  options?: SafeFetchOptions,
 ): ResultAsync<T, FetchError> {
   const { parseJson = true, ...fetchOptions } = options || {};
   const urlString = typeof url === "string" ? url : url.toString();
@@ -173,7 +173,7 @@ export function safeFetch<T = unknown>(
           error instanceof Error ? error.message : "Network request failed",
         cause: error,
       };
-    }
+    },
   );
 }
 
@@ -188,7 +188,7 @@ export function isNetworkError(error: FetchError): error is NetworkError {
  * Type guard to check if an error is an HttpError
  */
 export function isHttpError<E = unknown>(
-  error: FetchError<E>
+  error: FetchError<E>,
 ): error is HttpError<E> {
   return error.type === "http";
 }

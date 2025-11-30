@@ -1,8 +1,15 @@
-import { Result, ResultAsync, ok, err } from "@safeurl/core/result";
-import { wrapDbQuery, type DatabaseError } from "@safeurl/core/result";
-import { db, dbInstance } from "../../lib/db";
-import { wallets, users, executeRawSQL } from "@safeurl/db";
+import {
+  err,
+  ok,
+  Result,
+  ResultAsync,
+  wrapDbQuery,
+  type DatabaseError,
+} from "@safeurl/core/result";
+import { executeRawSQL, users, wallets } from "@safeurl/db";
 import { eq, sql } from "drizzle-orm";
+
+import { db, dbInstance } from "../../lib/db";
 import type { PurchaseCreditsRequest } from "./schemas";
 
 /**
@@ -14,7 +21,7 @@ async function ensureUserExists(userId: string): Promise<void> {
     // Try to insert user, ignore if already exists (SQLite specific)
     await executeRawSQL(
       dbInstance,
-      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`
+      sql`INSERT OR IGNORE INTO users (clerk_user_id) VALUES (${userId})`,
     );
   } catch (error) {
     // If INSERT OR IGNORE fails, try regular insert (for non-SQLite databases)
@@ -52,7 +59,7 @@ interface ServiceError {
  * Creates user and wallet if they don't exist
  */
 export async function getCreditBalance(
-  userId: string
+  userId: string,
 ): Promise<Result<{ balance: number; updatedAt: Date }, ServiceError>> {
   console.log(`[getCreditBalance] Starting for userId: ${userId}`);
 
@@ -64,7 +71,7 @@ export async function getCreditBalance(
 
     // Check if wallet exists
     console.log(
-      `[getCreditBalance] Checking wallet existence for userId: ${userId}`
+      `[getCreditBalance] Checking wallet existence for userId: ${userId}`,
     );
     let userWallet = await db
       .select({
@@ -77,7 +84,7 @@ export async function getCreditBalance(
 
     if (userWallet.length === 0) {
       console.log(
-        `[getCreditBalance] Wallet not found, creating wallet for userId: ${userId}`
+        `[getCreditBalance] Wallet not found, creating wallet for userId: ${userId}`,
       );
       // Create wallet if it doesn't exist
       // Handle race condition: if another request creates the wallet between check and insert
@@ -91,7 +98,7 @@ export async function getCreditBalance(
           .returning();
 
         console.log(
-          `[getCreditBalance] Wallet created successfully, balance: ${newWallet.creditBalance}`
+          `[getCreditBalance] Wallet created successfully, balance: ${newWallet.creditBalance}`,
         );
         return {
           balance: newWallet.creditBalance,
@@ -111,18 +118,18 @@ export async function getCreditBalance(
           .limit(1);
         if (userWallet.length === 0) {
           console.error(
-            `[getCreditBalance] Wallet still not found after retry, re-throwing error`
+            `[getCreditBalance] Wallet still not found after retry, re-throwing error`,
           );
           // If still not found, re-throw the error
           throw error;
         }
         console.log(
-          `[getCreditBalance] Wallet found after retry (race condition handled)`
+          `[getCreditBalance] Wallet found after retry (race condition handled)`,
         );
       }
     } else {
       console.log(
-        `[getCreditBalance] Wallet exists, balance: ${userWallet[0].creditBalance}`
+        `[getCreditBalance] Wallet exists, balance: ${userWallet[0].creditBalance}`,
       );
     }
 
@@ -146,7 +153,7 @@ export async function getCreditBalance(
   }
 
   console.log(
-    `[getCreditBalance] Success, returning balance: ${result.value.balance}`
+    `[getCreditBalance] Success, returning balance: ${result.value.balance}`,
   );
   return ok(result.value);
 }
@@ -157,7 +164,7 @@ export async function getCreditBalance(
  */
 export async function purchaseCredits(
   userId: string,
-  request: PurchaseCreditsRequest
+  request: PurchaseCreditsRequest,
 ): Promise<
   Result<{ transactionId: string; newBalance: number }, ServiceError>
 > {

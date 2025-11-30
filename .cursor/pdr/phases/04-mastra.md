@@ -57,7 +57,7 @@ packages/mastra/
   z.object({
     riskScore: z.number().min(0).max(100),
     categories: z.array(
-      z.enum(["phishing", "malware", "scam", "suspicious", "safe"])
+      z.enum(["phishing", "malware", "scam", "suspicious", "safe"]),
     ),
     confidence: z.number().min(0).max(1),
     reasoning: z.string(),
@@ -194,6 +194,7 @@ packages/mastra/
 
   ```typescript
   import { Mastra } from "@mastra/core/mastra";
+
   import { urlSafetyAgent } from "./agents/url-safety-agent";
 
   export const mastra = new Mastra({

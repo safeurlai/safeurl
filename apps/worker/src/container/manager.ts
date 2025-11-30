@@ -1,7 +1,8 @@
-import Docker from "dockerode";
-import { Result, ok, err } from "@safeurl/core/result";
-import { docker } from "../lib/docker";
+import { err, ok, Result } from "@safeurl/core/result";
 import { scanResultSchema, type ScanResult } from "@safeurl/core/schemas";
+import Docker from "dockerode";
+
+import { docker } from "../lib/docker";
 
 /**
  * Container execution error types
@@ -36,13 +37,13 @@ export interface ContainerExecutionResult {
  */
 export async function spawnFetcherContainer(
   jobId: string,
-  url: string
+  url: string,
 ): Promise<Result<ContainerExecutionResult, ContainerError>> {
   const fetcherImage = process.env.FETCHER_IMAGE || "safeurl-fetcher:latest";
   const timeoutMs = parseInt(process.env.CONTAINER_TIMEOUT_MS || "30000", 10);
   const memoryLimitMB = parseInt(
     process.env.CONTAINER_MEMORY_LIMIT_MB || "512",
-    10
+    10,
   );
   const cpuLimit = parseFloat(process.env.CONTAINER_CPU_LIMIT || "0.5");
 
@@ -141,7 +142,7 @@ export async function spawnFetcherContainer(
           errorMsg.includes("409")
         ) {
           console.warn(
-            "Could not retrieve logs: container was already removed"
+            "Could not retrieve logs: container was already removed",
           );
           logs = Buffer.from(""); // Use empty buffer as fallback
         } else {
@@ -170,7 +171,7 @@ export async function spawnFetcherContainer(
             errorMsg.includes("409")
           ) {
             console.warn(
-              "Could not retrieve logs before timeout kill: container was already removed"
+              "Could not retrieve logs before timeout kill: container was already removed",
             );
             logs = Buffer.from("");
           } else {
@@ -314,7 +315,7 @@ export async function spawnFetcherContainer(
               typeof wrapper.result === "object" &&
               "error" in wrapper.result
                 ? `Container reported failure: ${JSON.stringify(
-                    wrapper.result
+                    wrapper.result,
                   )}`
                 : "Container reported failure",
             details: {

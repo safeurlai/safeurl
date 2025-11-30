@@ -1,5 +1,9 @@
-import type { LogEntry, LogLevel, LoggerOptions } from "./types";
-import { LOG_LEVEL_PRIORITY } from "./types";
+import {
+  LOG_LEVEL_PRIORITY,
+  type LogEntry,
+  type LoggerOptions,
+  type LogLevel,
+} from "./types";
 
 /**
  * Supported color names for terminal output
@@ -207,7 +211,7 @@ export class Logger {
     // Error stack
     if (entry.error) {
       parts.push(
-        "\n" + this.#colorize(entry.error.stack || entry.error.message, "red")
+        "\n" + this.#colorize(entry.error.stack || entry.error.message, "red"),
       );
     }
 
@@ -331,7 +335,7 @@ export function createLogger(options?: LoggerOptions): Logger {
  * ```
  */
 export function createDebugLogger(
-  options?: Omit<LoggerOptions, "debug">
+  options?: Omit<LoggerOptions, "debug">,
 ): Logger {
   return new Logger({
     ...options,

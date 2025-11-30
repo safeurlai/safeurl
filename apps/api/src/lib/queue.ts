@@ -45,4 +45,3 @@ export async function closeQueueConnections(): Promise<void> {
   await scanQueue.close();
   await redisConnection.quit();
 }
-

@@ -61,8 +61,9 @@ const ssrfSafeUrlSchema = z
       }
     },
     {
-      message: "URL must be a valid public HTTP/HTTPS URL (no private/internal IPs)",
-    }
+      message:
+        "URL must be a valid public HTTP/HTTPS URL (no private/internal IPs)",
+    },
   );
 
 /**
@@ -125,7 +126,9 @@ export const scanResultSchema = z.object({
   indicators: z
     .array(z.string())
     .min(0)
-    .describe("Array of specific indicators that contributed to the assessment"),
+    .describe(
+      "Array of specific indicators that contributed to the assessment",
+    ),
   contentHash: z
     .string()
     .regex(/^[a-f0-9]{64}$/, "Content hash must be a valid SHA-256 hash")
@@ -188,7 +191,7 @@ export const stateTransitionSchema = z.object({
  */
 export function validateStateTransition(
   from: string,
-  to: string
+  to: string,
 ): { valid: boolean; error?: string } {
   const allowed = VALID_TRANSITIONS[from];
   if (!allowed) {
@@ -214,7 +217,7 @@ export const validatedStateTransitionSchema = stateTransitionSchema.refine(
   {
     message: "Invalid state transition",
     path: ["toState"],
-  }
+  },
 );
 
 // ============================================================================
