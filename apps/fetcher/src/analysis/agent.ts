@@ -7,6 +7,8 @@ import {
 } from "@safeurl/core";
 import { analyzeUrl, type UrlAnalysisInput } from "@safeurl/mastra";
 
+import { createPlaywrightScreenshotGenerator } from "./screenshot-generator";
+
 export type AgentAnalysisInput = UrlAnalysisInput;
 
 export interface AgentAnalysisResult {
@@ -44,8 +46,13 @@ export async function analyzeWithAgent(
     });
   }
 
+  // Create a Playwright screenshot generator for Node.js/Bun environments
+  // Playwright is a direct dependency of the fetcher app
+  const screenshotGenerator = createPlaywrightScreenshotGenerator();
+
   const analysisResult = await analyzeUrl(input, {
     openRouterApiKey,
+    screenshotGenerator,
   });
 
   if (analysisResult.isErr()) {

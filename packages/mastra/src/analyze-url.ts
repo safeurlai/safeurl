@@ -153,6 +153,7 @@ export async function analyzeUrl(
             schema: urlSafetyAnalysisSchema,
           },
         },
+        config.screenshotGenerator,
       );
     } catch (generateError: any) {
       const errorMessage = String(generateError?.message || generateError);

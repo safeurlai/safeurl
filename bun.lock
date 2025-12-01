@@ -81,6 +81,8 @@
         "@safeurl/db": "workspace:*",
         "@safeurl/mastra": "workspace:*",
         "drizzle-orm": "^0.44.7",
+        "neverthrow": "^6.2.2",
+        "playwright": "^1.57.0",
         "zod": "^3.25.76",
       },
       "devDependencies": {

@@ -1,3 +1,10 @@
 export { contentExtractionTool } from "./content-extraction";
-export { screenshotAnalysisTool } from "./screenshot-analysis";
+export {
+  createScreenshotAnalysisTool,
+  executeScreenshotAnalysis,
+  type ScreenshotGenerator,
+  type ScreenshotOptions,
+  type ScreenshotMetadata,
+  type ScreenshotResult,
+} from "./screenshot-analysis";
 export { reputationCheckTool } from "./reputation-check";

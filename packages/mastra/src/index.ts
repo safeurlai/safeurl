@@ -2,13 +2,8 @@ import { Mastra } from "@mastra/core/mastra";
 
 import {
   createUrlSafetyAgent,
-  urlSafetyAgent,
   type UrlSafetyAgentConfig,
 } from "./agents/url-safety-agent";
-
-export const mastra = new Mastra({
-  agents: { urlSafetyAgent },
-});
 
 export function createMastraInstance(config: UrlSafetyAgentConfig) {
   const agent = createUrlSafetyAgent(config);
@@ -18,14 +13,17 @@ export function createMastraInstance(config: UrlSafetyAgentConfig) {
 }
 
 export {
-  urlSafetyAgent,
   createUrlSafetyAgent,
   type UrlSafetyAgentConfig,
 } from "./agents/url-safety-agent";
 export {
   contentExtractionTool,
-  screenshotAnalysisTool,
+  createScreenshotAnalysisTool,
   reputationCheckTool,
+  type ScreenshotGenerator,
+  type ScreenshotOptions,
+  type ScreenshotMetadata,
+  type ScreenshotResult,
 } from "./tools";
 export {
   analyzeUrl,

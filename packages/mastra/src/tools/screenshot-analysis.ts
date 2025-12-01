@@ -1,7 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import { generateContentHash, validateSsrfSafeUrl } from "@safeurl/core/utils";
 import { err, ok, Result } from "neverthrow";
-import { Browser, chromium, Page } from "playwright";
 import { z } from "zod";
 
 const screenshotAnalysisInputSchema = z.object({
@@ -35,8 +34,48 @@ const screenshotAnalysisOutputSchema = z.object({
   }),
 });
 
+/**
+ * Screenshot generation options
+ */
+export interface ScreenshotOptions {
+  viewport: {
+    width: number;
+    height: number;
+  };
+  imageFormat: "png" | "jpeg";
+  quality: number;
+}
+
+/**
+ * Metadata returned from screenshot generation
+ */
+export interface ScreenshotMetadata {
+  contentType: string;
+  isImageUrl: boolean;
+  pageText?: string;
+  formCount?: number;
+}
+
+/**
+ * Result of screenshot generation
+ */
+export interface ScreenshotResult {
+  screenshotBuffer: Buffer;
+  metadata: ScreenshotMetadata;
+}
+
+/**
+ * Function type for screenshot generation.
+ * This abstraction allows different implementations (Playwright, Puppeteer, Cloudflare Workers, etc.)
+ */
+export type ScreenshotGenerator = (
+  url: string,
+  options: ScreenshotOptions,
+) => Promise<Result<ScreenshotResult, string>>;
+
 export async function executeScreenshotAnalysis(
   input: z.infer<typeof screenshotAnalysisInputSchema>,
+  screenshotGenerator: ScreenshotGenerator,
 ): Promise<Result<z.infer<typeof screenshotAnalysisOutputSchema>, string>> {
   const urlValidation = validateSsrfSafeUrl(input.url);
   if (urlValidation.isErr()) {
@@ -46,42 +85,24 @@ export async function executeScreenshotAnalysis(
   const validatedUrl = urlValidation.value;
   const viewportWidth = input.viewport?.width ?? 1920;
   const viewportHeight = input.viewport?.height ?? 1080;
-
-  let browser: Browser | null = null;
-  let page: Page | null = null;
+  const imageFormat = input.imageFormat || "png";
+  const quality = input.quality || 85;
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-    });
-
-    page = await browser.newPage({
+    const screenshotResult = await screenshotGenerator(validatedUrl, {
       viewport: {
         width: viewportWidth,
         height: viewportHeight,
       },
+      imageFormat,
+      quality,
     });
 
-    const response = await page.goto(validatedUrl, {
-      waitUntil: "networkidle",
-      timeout: 30000,
-    });
+    if (screenshotResult.isErr()) {
+      return err(screenshotResult.error);
+    }
 
-    const responseHeaders = response?.headers() || {};
-    const contentType = responseHeaders["content-type"] || "unknown";
-
-    const isImageUrl =
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?|$)/i.test(validatedUrl) ||
-      contentType?.includes("image");
-
-    const imageFormat = input.imageFormat || "png";
-    const quality = input.quality || 85;
-    const screenshotBuffer = await page.screenshot({
-      type: imageFormat,
-      quality: imageFormat === "jpeg" ? quality : undefined,
-      fullPage: false,
-    });
-
+    const { screenshotBuffer, metadata } = screenshotResult.value;
     const screenshotBase64 = screenshotBuffer.toString("base64");
     const hashResult = await generateContentHash(screenshotBase64);
     if (hashResult.isErr()) {
@@ -92,10 +113,9 @@ export async function executeScreenshotAnalysis(
     const screenshotHash = hashResult.value;
 
     const suspiciousElements: string[] = [];
-    let layoutAnalysis = isImageUrl ? "Image URL" : "Web page";
+    let layoutAnalysis = metadata.isImageUrl ? "Image URL" : "Web page";
 
-    const pageText = await page.textContent("body");
-    if (pageText) {
+    if (metadata.pageText) {
       const suspiciousPatterns = [
         /verify.*account/i,
         /suspended.*account/i,
@@ -105,19 +125,18 @@ export async function executeScreenshotAnalysis(
       ];
 
       for (const pattern of suspiciousPatterns) {
-        if (pattern.test(pageText)) {
+        if (pattern.test(metadata.pageText)) {
           suspiciousElements.push(`Suspicious pattern: ${pattern.source}`);
         }
       }
 
-      const textLength = pageText.length;
+      const textLength = metadata.pageText.length;
       if (textLength < 100) layoutAnalysis = "Minimal content";
       else if (textLength > 10000) layoutAnalysis = "Extensive content";
     }
 
-    const formCount = await page.locator("form").count();
-    if (formCount > 0) {
-      suspiciousElements.push(`${formCount} form(s)`);
+    if (metadata.formCount !== undefined && metadata.formCount > 0) {
+      suspiciousElements.push(`${metadata.formCount} form(s)`);
     }
 
     return ok({
@@ -128,8 +147,8 @@ export async function executeScreenshotAnalysis(
         layoutAnalysis,
       },
       metadata: {
-        contentType: contentType || "unknown",
-        isImageUrl,
+        contentType: metadata.contentType || "unknown",
+        isImageUrl: metadata.isImageUrl,
       },
     });
   } catch (error) {
@@ -138,31 +157,38 @@ export async function executeScreenshotAnalysis(
         error instanceof Error ? error.message : "Unknown error"
       }`,
     );
-  } finally {
-    if (page) {
-      await page.close().catch(() => {});
-    }
-    if (browser) {
-      await browser.close().catch(() => {});
-    }
   }
 }
 
-export const screenshotAnalysisTool = createTool({
-  id: "screenshot-analysis",
-  description:
-    "Captures screenshots of URLs for visual analysis. Detects NSFW content, phishing layouts, suspicious elements. Use FIRST for image URLs or visual analysis. SSRF-safe.",
-  inputSchema: screenshotAnalysisInputSchema,
-  outputSchema: screenshotAnalysisOutputSchema,
-  execute: async ({
-    context,
-  }: {
-    context: z.infer<typeof screenshotAnalysisInputSchema>;
-  }) => {
-    const result = await executeScreenshotAnalysis(context);
-    if (result.isErr()) {
-      throw new Error(result.error);
-    }
-    return result.value;
-  },
-});
+/**
+ * Creates a screenshot analysis tool with the provided screenshot generator.
+ * This allows for dependency injection and Cloudflare compatibility.
+ *
+ * @param screenshotGenerator - Function that generates screenshots from URLs
+ * @returns A configured screenshot analysis tool
+ */
+export function createScreenshotAnalysisTool(
+  screenshotGenerator: ScreenshotGenerator,
+) {
+  return createTool({
+    id: "screenshot-analysis",
+    description:
+      "Captures screenshots of URLs for visual analysis. Detects NSFW content, phishing layouts, suspicious elements. Use FIRST for image URLs or visual analysis. SSRF-safe.",
+    inputSchema: screenshotAnalysisInputSchema,
+    outputSchema: screenshotAnalysisOutputSchema,
+    execute: async ({
+      context,
+    }: {
+      context: z.infer<typeof screenshotAnalysisInputSchema>;
+    }) => {
+      const result = await executeScreenshotAnalysis(
+        context,
+        screenshotGenerator,
+      );
+      if (result.isErr()) {
+        throw new Error(result.error);
+      }
+      return result.value;
+    },
+  });
+}

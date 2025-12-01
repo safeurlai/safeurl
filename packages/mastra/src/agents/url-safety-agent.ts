@@ -4,8 +4,9 @@ import { z } from "zod";
 
 import {
   contentExtractionTool,
+  createScreenshotAnalysisTool,
   reputationCheckTool,
-  screenshotAnalysisTool,
+  type ScreenshotGenerator,
 } from "../tools";
 import { executeScreenshotAnalysis } from "../tools/screenshot-analysis";
 
@@ -22,9 +23,11 @@ function isImageContentType(contentType: string | null | undefined): boolean {
   return /^image\//i.test(contentType);
 }
 
-function extractUrlFromInput(
-  input: Parameters<typeof urlSafetyAgent.generate>[0],
-): string | null {
+type UrlSafetyAgentInput = Parameters<
+  ReturnType<typeof createUrlSafetyAgent>["generate"]
+>[0];
+
+function extractUrlFromInput(input: UrlSafetyAgentInput): string | null {
   const urlRegex = /https?:\/\/[^\s]+/i;
 
   const extractFromText = (text: string): string | null => {
@@ -81,6 +84,12 @@ export const urlSafetyAnalysisSchema = z.object({
 
 export interface UrlSafetyAgentConfig {
   openRouterApiKey: string;
+  /**
+   * Required screenshot generator function.
+   * For Cloudflare Workers compatibility, provide a custom generator.
+   * For Node.js/Bun environments, you can use a Playwright-based generator.
+   */
+  screenshotGenerator: ScreenshotGenerator;
 }
 
 export function createUrlSafetyAgent(config: UrlSafetyAgentConfig): Agent {
@@ -91,6 +100,17 @@ export function createUrlSafetyAgent(config: UrlSafetyAgentConfig): Agent {
   const openrouter = createOpenRouter({
     apiKey: config.openRouterApiKey,
   });
+
+  // Screenshot generator is required - throw early if not provided
+  if (!config.screenshotGenerator) {
+    throw new Error(
+      "screenshotGenerator is required in UrlSafetyAgentConfig. Provide a screenshot generator function for screenshot analysis to work.",
+    );
+  }
+
+  const screenshotTool = createScreenshotAnalysisTool(
+    config.screenshotGenerator,
+  );
 
   const agent = new Agent({
     name: "url-safety-agent",
@@ -105,7 +125,7 @@ Be accurate - minimize false positives.`,
     model: openrouter(IMAGE_AND_TOOLS_MODEL),
     tools: {
       contentExtractionTool,
-      screenshotAnalysisTool,
+      screenshotAnalysisTool: screenshotTool,
       reputationCheckTool,
     },
     defaultGenerateOptions: {
@@ -117,14 +137,11 @@ Be accurate - minimize false positives.`,
   return agent;
 }
 
-export const urlSafetyAgent = createUrlSafetyAgent({
-  openRouterApiKey: process.env.OPENROUTER_API_KEY || "",
-});
-
 export async function generateWithDebug(
   agent: Agent,
   input: Parameters<Agent["generate"]>[0],
   options?: Parameters<Agent["generate"]>[1],
+  screenshotGenerator?: ScreenshotGenerator,
 ): Promise<ReturnType<Agent["generate"]>> {
   const detectedUrl = extractUrlFromInput(input);
 
@@ -163,69 +180,75 @@ export async function generateWithDebug(
   let enhancedInput = input;
 
   if (isImage && detectedUrl) {
-    const screenshotResult = await executeScreenshotAnalysis({
-      url: detectedUrl,
-      viewport: {
-        width: 1024,
-        height: 1024,
-      },
-      imageFormat: "jpeg",
-      quality: 85,
-    });
-
-    if (screenshotResult.isOk() && screenshotResult.value.screenshotBase64) {
-      const imageBase64 = screenshotResult.value.screenshotBase64;
-      const imageAttachment = {
-        type: "image" as const,
-        image: imageBase64,
-        mimeType: "image/jpeg" as const,
-      };
-
-      const normalizeContent = (content: any): any[] => {
-        if (Array.isArray(content)) return [...content];
-        if (typeof content === "string")
-          return [{ type: "text", text: content }];
-        return [content];
-      };
-
-      const addImageToMessages = (messages: any[]): any[] => {
-        const msgs = [...messages];
-        const lastMsg = msgs[msgs.length - 1];
-
-        if (
-          lastMsg &&
-          typeof lastMsg === "object" &&
-          "role" in lastMsg &&
-          lastMsg.role
-        ) {
-          const content = normalizeContent((lastMsg as any).content);
-          content.push(imageAttachment);
-          msgs[msgs.length - 1] = { ...lastMsg, content };
-        } else {
-          msgs.push({ role: "user", content: [imageAttachment] });
-        }
-        return msgs;
-      };
-
-      if (typeof input === "string") {
-        enhancedInput = [
-          {
-            role: "user",
-            content: [{ type: "text", text: input }, imageAttachment],
+    // Use provided generator if available
+    if (screenshotGenerator) {
+      const screenshotResult = await executeScreenshotAnalysis(
+        {
+          url: detectedUrl,
+          viewport: {
+            width: 1024,
+            height: 1024,
           },
-        ] as any;
-      } else if (Array.isArray(input)) {
-        enhancedInput = addImageToMessages(input) as any;
-      } else if (typeof input === "object" && input && "messages" in input) {
-        enhancedInput = {
-          ...input,
-          messages: addImageToMessages((input as any).messages),
-        } as any;
-      }
-    } else {
-      if (typeof input === "string") {
-        enhancedInput =
-          `${input}\n\nNote: This is an image URL (${detectedUrl}), but screenshot capture failed. Please analyze the URL metadata.` as any;
+          imageFormat: "jpeg",
+          quality: 85,
+        },
+        screenshotGenerator,
+      );
+
+      if (screenshotResult.isOk() && screenshotResult.value.screenshotBase64) {
+        const imageBase64 = screenshotResult.value.screenshotBase64;
+        const imageAttachment = {
+          type: "image" as const,
+          image: imageBase64,
+          mimeType: "image/jpeg" as const,
+        };
+
+        const normalizeContent = (content: any): any[] => {
+          if (Array.isArray(content)) return [...content];
+          if (typeof content === "string")
+            return [{ type: "text", text: content }];
+          return [content];
+        };
+
+        const addImageToMessages = (messages: any[]): any[] => {
+          const msgs = [...messages];
+          const lastMsg = msgs[msgs.length - 1];
+
+          if (
+            lastMsg &&
+            typeof lastMsg === "object" &&
+            "role" in lastMsg &&
+            lastMsg.role
+          ) {
+            const content = normalizeContent((lastMsg as any).content);
+            content.push(imageAttachment);
+            msgs[msgs.length - 1] = { ...lastMsg, content };
+          } else {
+            msgs.push({ role: "user", content: [imageAttachment] });
+          }
+          return msgs;
+        };
+
+        if (typeof input === "string") {
+          enhancedInput = [
+            {
+              role: "user",
+              content: [{ type: "text", text: input }, imageAttachment],
+            },
+          ] as any;
+        } else if (Array.isArray(input)) {
+          enhancedInput = addImageToMessages(input) as any;
+        } else if (typeof input === "object" && input && "messages" in input) {
+          enhancedInput = {
+            ...input,
+            messages: addImageToMessages((input as any).messages),
+          } as any;
+        }
+      } else {
+        if (typeof input === "string") {
+          enhancedInput =
+            `${input}\n\nNote: This is an image URL (${detectedUrl}), but screenshot capture failed. Please analyze the URL metadata.` as any;
+        }
       }
     }
   }
