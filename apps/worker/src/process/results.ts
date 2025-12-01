@@ -3,6 +3,7 @@ import {
   type AuditLogCreation,
   type AuditLogError,
 } from "@safeurl/core/audit";
+import { createLogger } from "@safeurl/core/logger";
 import { err, ok, Result, wrapDbQuery } from "@safeurl/core/result";
 import { auditLogs, scanResults } from "@safeurl/db";
 import { eq } from "drizzle-orm";
@@ -14,6 +15,8 @@ import {
   transitionToAnalyzing,
   transitionToCompleted,
 } from "../state/transitions";
+
+const logger = createLogger({ prefix: "results" });
 
 /**
  * Result processing error types
@@ -29,7 +32,7 @@ export interface ResultProcessingError {
  */
 class DatabaseAuditLogStorage {
   async append(entry: AuditLogCreation): Promise<Result<void, AuditLogError>> {
-    console.log("[AUDIT LOG] Attempting to insert audit log entry:", {
+    logger.info("Attempting to insert audit log entry", {
       scanJobId: entry.scanJobId,
       urlAccessed: entry.urlAccessed,
       timestamp: entry.timestamp,
@@ -53,7 +56,7 @@ class DatabaseAuditLogStorage {
           riskAssessmentSummary: entry.riskAssessmentSummary ?? null,
         });
 
-        console.log("[AUDIT LOG] Insert successful:", insertResult);
+        logger.info("Insert successful", { insertResult });
 
         // Verify the audit log was actually written
         const verifyResult = await db
@@ -63,27 +66,24 @@ class DatabaseAuditLogStorage {
           .limit(1);
 
         if (verifyResult.length === 0) {
-          console.error(
-            "[AUDIT LOG] WARNING: Insert appeared successful but audit log not found in database!",
+          logger.error(
+            "WARNING: Insert appeared successful but audit log not found in database!",
           );
           throw new Error(
             "Audit log insert verification failed - log not found after insert",
           );
         } else {
-          console.log(
-            "[AUDIT LOG] Verification successful - audit log found in database:",
-            {
-              id: verifyResult[0].id,
-              scanJobId: verifyResult[0].scanJobId,
-              urlAccessed: verifyResult[0].urlAccessed,
-            },
-          );
+          logger.info("Verification successful - audit log found in database", {
+            id: verifyResult[0].id,
+            scanJobId: verifyResult[0].scanJobId,
+            urlAccessed: verifyResult[0].urlAccessed,
+          });
         }
 
         // wrapDbQuery already wraps the return value in a Result
         return undefined;
       } catch (error) {
-        console.error("[AUDIT LOG] Insert failed with error:", {
+        logger.error("Insert failed with error", {
           error,
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined,
@@ -99,7 +99,7 @@ class DatabaseAuditLogStorage {
     }).mapErr((error) => {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error("[AUDIT LOG] wrapDbQuery error:", {
+      logger.error("wrapDbQuery error", {
         errorMessage,
         errorType: error?.type,
         errorDetails: error,
@@ -208,7 +208,7 @@ export async function processScanResults(
 
   if (auditResult.isErr()) {
     // Log error but don't fail the job - audit logging is important but not critical
-    console.error("[AUDIT LOG ERROR] Failed to write audit log:", {
+    logger.error("Failed to write audit log", {
       error: auditResult.error,
       errorType: auditResult.error.type,
       message: auditResult.error.message,
@@ -219,7 +219,7 @@ export async function processScanResults(
     });
 
     // Also log the entry that failed to be inserted for debugging
-    console.error("[AUDIT LOG ERROR] Entry that failed:", {
+    logger.error("Entry that failed", {
       scanJobId: jobId,
       urlAccessed,
       timestamp: auditEntry.timestamp,
@@ -229,10 +229,7 @@ export async function processScanResults(
       riskAssessmentSummary: auditEntry.riskAssessmentSummary,
     });
   } else {
-    console.log(
-      "[AUDIT LOG SUCCESS] Audit log written successfully for job:",
-      jobId,
-    );
+    logger.info("Audit log written successfully for job", { jobId });
   }
 
   // Step 4: Get updated version for final transition
