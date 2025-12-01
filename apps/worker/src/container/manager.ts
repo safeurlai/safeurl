@@ -1,8 +1,11 @@
+import { createLogger } from "@safeurl/core/logger";
 import { err, ok, Result } from "@safeurl/core/result";
 import { scanResultSchema, type ScanResult } from "@safeurl/core/schemas";
 import Docker from "dockerode";
 
 import { docker } from "../lib/docker";
+
+const logger = createLogger({ prefix: "container" });
 
 /**
  * Container execution error types
@@ -53,7 +56,7 @@ export async function spawnFetcherContainer(
       await docker.getImage(fetcherImage).inspect();
     } catch (error) {
       // Image doesn't exist locally, try to pull it
-      console.log(`Pulling fetcher image: ${fetcherImage}`);
+      logger.info(`Pulling fetcher image: ${fetcherImage}`, { fetcherImage });
       await new Promise<void>((resolve, reject) => {
         docker.pull(fetcherImage, (err: Error | null, stream: any) => {
           if (err) {
@@ -82,9 +85,25 @@ export async function spawnFetcherContainer(
         "OPENROUTER_API_KEY environment variable is not set. " +
         "This is required for Mastra agent execution. " +
         "Get your API key from https://openrouter.ai/keys and set it in your environment or .env file before running tests or the worker.";
-      console.error(`[CONTAINER ERROR] ${errorMsg}`);
+      logger.warn(
+        "OPENROUTER_API_KEY not set - container will fail with clear error",
+        {
+          jobId,
+          url,
+        },
+      );
       // Don't fail here - let the container fail with a clear error message
       // This allows tests to run and fail gracefully
+    }
+
+    // Add database connection for cache lookups (optional - cache will be disabled if not set)
+    const tursoUrl = process.env.TURSO_CONNECTION_URL;
+    const tursoToken = process.env.TURSO_AUTH_TOKEN;
+    if (tursoUrl) {
+      containerEnv.push(`TURSO_CONNECTION_URL=${tursoUrl}`);
+      if (tursoToken) {
+        containerEnv.push(`TURSO_AUTH_TOKEN=${tursoToken}`);
+      }
     }
 
     const containerConfig: Docker.ContainerCreateOptions = {
@@ -103,9 +122,15 @@ export async function spawnFetcherContainer(
     };
 
     // Create container
+    logger.info("Creating fetcher container", { jobId, url, fetcherImage });
     const container = await docker.createContainer(containerConfig);
 
     // Start container
+    logger.info("Starting fetcher container", {
+      jobId,
+      url,
+      containerId: container.id,
+    });
     await container.start();
 
     // Set up timeout
@@ -125,6 +150,12 @@ export async function spawnFetcherContainer(
     try {
       const waitResult = await Promise.race([waitPromise, timeoutPromise]);
       exitCode = waitResult.StatusCode || 0;
+      logger.info("Container execution completed", {
+        jobId,
+        url,
+        exitCode,
+        containerId: container.id,
+      });
 
       // Get logs immediately after container exits (before AutoRemove kicks in)
       try {
@@ -141,8 +172,12 @@ export async function spawnFetcherContainer(
           errorMsg.includes("removed") ||
           errorMsg.includes("409")
         ) {
-          console.warn(
+          logger.warn(
             "Could not retrieve logs: container was already removed",
+            {
+              jobId,
+              url,
+            },
           );
           logs = Buffer.from(""); // Use empty buffer as fallback
         } else {
@@ -155,6 +190,12 @@ export async function spawnFetcherContainer(
         error.message === "Container execution timeout"
       ) {
         timeoutOccurred = true;
+        logger.warn("Container execution timeout", {
+          jobId,
+          url,
+          timeoutMs,
+          containerId: container.id,
+        });
 
         // Try to get logs before killing the container
         try {
@@ -170,8 +211,9 @@ export async function spawnFetcherContainer(
             errorMsg.includes("removed") ||
             errorMsg.includes("409")
           ) {
-            console.warn(
+            logger.warn(
               "Could not retrieve logs before timeout kill: container was already removed",
+              { jobId, url },
             );
             logs = Buffer.from("");
           } else {
@@ -183,8 +225,17 @@ export async function spawnFetcherContainer(
         // Kill the container
         try {
           await container.kill();
+          logger.info("Killed timed-out container", { jobId, url, timeoutMs });
         } catch (killError) {
-          console.error("Failed to kill timed-out container:", killError);
+          logger.error("Failed to kill timed-out container", {
+            error:
+              killError instanceof Error
+                ? killError
+                : new Error(String(killError)),
+            jobId,
+            url,
+            timeoutMs,
+          });
         }
       } else {
         throw error;
@@ -235,11 +286,23 @@ export async function spawnFetcherContainer(
     // Clean up container (manual removal since AutoRemove is disabled)
     try {
       await container.remove({ force: true });
+      logger.debug("Container removed successfully", {
+        jobId,
+        url,
+        containerId: container.id,
+      });
     } catch (removeError: any) {
       // Container might already be removed, ignore error
       const errorMsg = removeError?.message?.toLowerCase() || "";
       if (!errorMsg.includes("no such container")) {
-        console.warn("Container removal warning:", removeError);
+        logger.warn("Container removal warning", {
+          error:
+            removeError instanceof Error
+              ? removeError
+              : new Error(String(removeError)),
+          jobId,
+          url,
+        });
       }
     }
 
@@ -276,22 +339,36 @@ export async function spawnFetcherContainer(
     let resultData: unknown;
 
     try {
-      // Try to find JSON in stdout (might be mixed with other output like warnings)
-      // Look for the last JSON object (in case there are multiple or warnings before)
-      const jsonMatches = stdout.match(/\{[\s\S]*\}/g);
-      if (!jsonMatches || jsonMatches.length === 0) {
-        return err({
-          type: "parse_error",
-          message: "No JSON output found in container stdout",
-          details: {
-            stdout,
-            stderr,
-          },
-        });
+      // Strip ANSI escape codes from stdout before parsing
+      const cleanedStdout = stdout.replace(/\u001b\[[0-9;]*m/g, "");
+
+      // Find the last line that contains valid JSON (the result is always on its own line)
+      const lines = cleanedStdout.split("\n");
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (line.startsWith("{") && line.includes('"jobId"')) {
+          try {
+            parsedOutput = JSON.parse(line);
+            break;
+          } catch {
+            continue;
+          }
+        }
       }
 
-      // Parse the last JSON object (should be the main output)
-      parsedOutput = JSON.parse(jsonMatches[jsonMatches.length - 1]);
+      // Fallback: try regex if line-based search failed
+      if (!parsedOutput) {
+        const jsonMatches = cleanedStdout.match(/\{[\s\S]*\}/g);
+        if (!jsonMatches || jsonMatches.length === 0) {
+          return err({
+            type: "parse_error",
+            message: "No JSON output found in container stdout",
+            details: { stdout: cleanedStdout.substring(0, 1000), stderr },
+          });
+        }
+        // Parse the last match (should be the result)
+        parsedOutput = JSON.parse(jsonMatches[jsonMatches.length - 1]);
+      }
 
       // Check if this is a wrapper object with success/result fields
       if (

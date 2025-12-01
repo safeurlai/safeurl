@@ -26,6 +26,44 @@ import { createWorker } from "./queue/processor";
 const TEST_USER_ID = "test_worker_user";
 const IMAGE_URL = "https://i.4cdn.org/cgl/1683919741567583.jpg";
 
+/**
+ * Helper function to wait for a job to complete
+ */
+async function waitForJobCompletion(
+  jobId: string,
+  maxWaitTime: number = 120000,
+  pollInterval: number = 500,
+): Promise<{ state: string; duration: number }> {
+  const startTime = Date.now();
+  let jobState = "QUEUED";
+
+  while (
+    jobState !== "COMPLETED" &&
+    jobState !== "FAILED" &&
+    Date.now() - startTime < maxWaitTime
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+    const updatedJob = await db
+      .select({ state: scanJobs.state })
+      .from(scanJobs)
+      .where(eq(scanJobs.id, jobId))
+      .limit(1);
+
+    if (updatedJob.length > 0) {
+      jobState = updatedJob[0].state;
+      if (jobState === "COMPLETED" || jobState === "FAILED") {
+        break;
+      }
+    }
+  }
+
+  return {
+    state: jobState,
+    duration: Date.now() - startTime,
+  };
+}
+
 // Create database instance for tests
 const dbInstance = createDatabase({
   url: process.env.TURSO_CONNECTION_URL!,
@@ -144,42 +182,32 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     })
     .returning();
 
-  // Add job to queue
-  await scanQueue.add("scan-url", {
+  // Add job to queue and store the BullMQ job reference
+  const bullmqJob = await scanQueue.add("scan-url", {
     jobId: job.id,
     url: IMAGE_URL,
     userId: TEST_USER_ID,
   });
 
   // Wait for job to complete (up to 120 seconds for image analysis, same as fetcher test)
-  let jobState = "QUEUED";
-  const maxWaitTime = 120000; // 120 seconds, same as fetcher test
-  const pollInterval = 500;
-  const startTime = Date.now();
+  const firstScanResult = await waitForJobCompletion(job.id, 120000);
 
-  while (
-    jobState !== "COMPLETED" &&
-    jobState !== "FAILED" &&
-    Date.now() - startTime < maxWaitTime
-  ) {
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-    const updatedJob = await db
-      .select({ state: scanJobs.state })
-      .from(scanJobs)
-      .where(eq(scanJobs.id, job.id))
-      .limit(1);
-
-    if (updatedJob.length > 0) {
-      jobState = updatedJob[0].state;
-      if (jobState === "COMPLETED" || jobState === "FAILED") {
-        break;
+  // If job failed, get error details for debugging
+  if (firstScanResult.state === "FAILED") {
+    let errorMessage = `Job ${job.id} failed.`;
+    try {
+      const jobState = await bullmqJob.getState();
+      if (jobState === "failed" && bullmqJob.failedReason) {
+        errorMessage += `\n\nError: ${bullmqJob.failedReason.substring(0, 500)}`;
       }
+    } catch {
+      // Ignore errors when retrieving job details
     }
+    throw new Error(errorMessage);
   }
 
   // Verify job completed successfully
-  expect(jobState).toBe("COMPLETED");
+  expect(firstScanResult.state).toBe("COMPLETED");
 
   // Fetch the scan result
   const [result] = await db
@@ -264,3 +292,119 @@ test("should analyze image URL and use screenshot-analysis tool", async () => {
     hasExplicitVisualAnalysis,
   });
 }, 120_000);
+
+test("should reuse cached results for same contentHash", async () => {
+  if (!worker || !scanQueue) {
+    throw new Error("Worker or queue not initialized");
+  }
+
+  // First scan - should be a cache miss and perform full analysis
+  const [firstJob] = await db
+    .insert(scanJobs)
+    .values({
+      userId: TEST_USER_ID,
+      url: IMAGE_URL,
+      state: "QUEUED",
+      version: 1,
+    })
+    .returning();
+
+  const firstBullmqJob = await scanQueue.add("scan-url", {
+    jobId: firstJob.id,
+    url: IMAGE_URL,
+    userId: TEST_USER_ID,
+  });
+
+  const firstScanResult = await waitForJobCompletion(firstJob.id, 120000);
+  if (firstScanResult.state === "FAILED") {
+    let error = "Check worker logs for details.";
+    try {
+      if ((await firstBullmqJob.getState()) === "failed") {
+        error = firstBullmqJob.failedReason?.substring(0, 500) || error;
+      }
+    } catch {
+      // Ignore errors
+    }
+    throw new Error(`First scan job ${firstJob.id} failed. ${error}`);
+  }
+  expect(firstScanResult.state).toBe("COMPLETED");
+
+  const [firstResult] = await db
+    .select()
+    .from(scanResults)
+    .where(eq(scanResults.jobId, firstJob.id))
+    .limit(1);
+
+  expect(firstResult).toBeDefined();
+  const firstContentHash = firstResult.contentHash;
+  const firstRiskScore = firstResult.riskScore;
+  const firstCategories = firstResult.categories;
+
+  // Second scan - should be a cache hit and reuse the cached result
+  const [secondJob] = await db
+    .insert(scanJobs)
+    .values({
+      userId: TEST_USER_ID,
+      url: IMAGE_URL,
+      state: "QUEUED",
+      version: 1,
+    })
+    .returning();
+
+  const secondScanStartTime = Date.now();
+  await scanQueue.add("scan-url", {
+    jobId: secondJob.id,
+    url: IMAGE_URL,
+    userId: TEST_USER_ID,
+  });
+
+  const secondScanResult = await waitForJobCompletion(secondJob.id, 120000);
+  const secondScanDuration = Date.now() - secondScanStartTime;
+
+  expect(secondScanResult.state).toBe("COMPLETED");
+
+  const [secondResult] = await db
+    .select()
+    .from(scanResults)
+    .where(eq(scanResults.jobId, secondJob.id))
+    .limit(1);
+
+  expect(secondResult).toBeDefined();
+
+  // Verify both scans have the same contentHash (same content)
+  expect(secondResult.contentHash).toBe(firstContentHash);
+
+  // Verify cached result matches original result
+  // Note: The cached result should have the same risk score and categories
+  // The reasoning might be slightly different due to caching, but core analysis should match
+  expect(secondResult.riskScore).toBe(firstRiskScore);
+  expect(secondResult.categories).toEqual(firstCategories);
+
+  // Verify second scan was faster (cache hit should skip AI analysis)
+  // Allow some margin for network/container overhead, but it should be significantly faster
+  const speedupRatio = firstScanResult.duration / secondScanDuration;
+  console.log("Cache performance:", {
+    firstScanDuration: firstScanResult.duration,
+    secondScanDuration: secondScanDuration,
+    speedupRatio: speedupRatio.toFixed(2),
+    firstContentHash: firstContentHash.substring(0, 16) + "...",
+    secondContentHash: secondResult.contentHash.substring(0, 16) + "...",
+  });
+
+  // Second scan should be faster (at least 20% faster due to skipping AI analysis)
+  // This is a conservative check - in practice, cache hits should be much faster
+  if (firstScanResult.duration > 10000) {
+    // Only check speedup for longer scans (where cache benefit is more significant)
+    expect(secondScanDuration).toBeLessThan(firstScanResult.duration);
+  }
+
+  // Verify both results are stored in database
+  expect(firstResult.jobId).toBe(firstJob.id);
+  expect(secondResult.jobId).toBe(secondJob.id);
+
+  // Verify both results have valid data
+  expect(firstResult.riskScore).toBeGreaterThanOrEqual(0);
+  expect(firstResult.riskScore).toBeLessThanOrEqual(100);
+  expect(secondResult.riskScore).toBeGreaterThanOrEqual(0);
+  expect(secondResult.riskScore).toBeLessThanOrEqual(100);
+}, 180_000); // Allow more time for two scans

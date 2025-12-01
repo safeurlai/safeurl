@@ -78,7 +78,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@safeurl/core": "workspace:*",
+        "@safeurl/db": "workspace:*",
         "@safeurl/mastra": "workspace:*",
+        "drizzle-orm": "^0.44.7",
         "zod": "^3.25.76",
       },
       "devDependencies": {

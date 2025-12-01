@@ -147,6 +147,11 @@ async function checkCredits(
 
 /**
  * Create scan job and decrement credits atomically
+ *
+ * Note: Cache checking happens at the fetcher level (after URL fetch).
+ * This avoids duplicate fetches while still providing cache benefits.
+ * Future optimization: Could add API-level cache check before job creation
+ * for instant responses, but would require fetching URL twice.
  */
 export async function createScanJob(
   userId: string,

@@ -7,6 +7,7 @@ import { err, ok, Result, scanResultSchema } from "@safeurl/core";
 import { analyzeWithAgent } from "./analysis/agent";
 import { createAuditLog } from "./audit/logger";
 import { fetchUrl } from "./fetch/url-fetcher";
+import { getCachedResult } from "./lib/cache";
 
 interface FetcherConfig {
   jobId: string;
@@ -93,30 +94,62 @@ async function main() {
 
     const fetchData = fetchResult.value;
 
-    const analysisResult = await analyzeWithAgent({
-      url: config.url,
-      contentHash: fetchData.contentHash,
-      httpStatus: fetchData.httpStatus,
-      httpHeaders: fetchData.httpHeaders,
-      contentType: fetchData.contentType,
-      metadata: fetchData.metadata,
-    });
-
-    if (analysisResult.isErr()) {
-      const error = analysisResult.error;
-      const output = {
-        jobId: config.jobId,
-        success: false,
-        error: {
-          type: error.type,
-          message: error.message,
-        },
-      };
-      console.log(JSON.stringify(output));
-      process.exit(1);
+    // Check cache before analysis
+    // If cache lookup fails, we'll proceed with analysis (graceful degradation)
+    let cacheResult;
+    try {
+      cacheResult = await getCachedResult(fetchData.contentHash);
+    } catch (error) {
+      // Cache lookup threw an error - log but continue with analysis
+      console.error(
+        JSON.stringify({
+          warning: "Cache lookup failed, proceeding with analysis",
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      cacheResult = { isOk: () => false, isErr: () => true } as any;
     }
+    let analysis;
 
-    const analysis = analysisResult.value;
+    if (cacheResult.isOk()) {
+      // Cache hit - use cached result
+      const cached = cacheResult.value;
+      analysis = {
+        riskScore: cached.riskScore,
+        categories: cached.categories,
+        confidenceScore: cached.confidenceScore,
+        reasoning: cached.reasoning,
+        indicators: cached.indicators,
+        modelUsed: cached.modelUsed,
+        analysisMetadata: cached.analysisMetadata,
+      };
+    } else {
+      // Cache miss - perform analysis
+      const analysisResult = await analyzeWithAgent({
+        url: config.url,
+        contentHash: fetchData.contentHash,
+        httpStatus: fetchData.httpStatus,
+        httpHeaders: fetchData.httpHeaders,
+        contentType: fetchData.contentType,
+        metadata: fetchData.metadata,
+      });
+
+      if (analysisResult.isErr()) {
+        const error = analysisResult.error;
+        const output = {
+          jobId: config.jobId,
+          success: false,
+          error: {
+            type: error.type,
+            message: error.message,
+          },
+        };
+        console.log(JSON.stringify(output));
+        process.exit(1);
+      }
+
+      analysis = analysisResult.value;
+    }
 
     const auditLogResult = await createAuditLog({
       scanJobId: config.jobId,

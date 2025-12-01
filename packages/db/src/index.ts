@@ -1,5 +1,5 @@
 import { createClient, type Client } from "@libsql/client";
-import { sql, type SQL } from "drizzle-orm";
+import { type SQL } from "drizzle-orm";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 
 import * as schema from "./schema";
@@ -70,12 +70,36 @@ export async function executeRawSQL(
   // Convert drizzle SQL template to libsql format
   // Drizzle's SQL object has queryChunks and params properties
   const sqlString = query.queryChunks.join("?");
-  const args = query.params as unknown[];
 
-  await client.execute({
-    sql: sqlString,
-    args,
-  });
+  // Extract params safely - drizzle SQL params are compatible with libsql InArgs
+  // InArgs is: string | number | bigint | Uint8Array | null | boolean
+  // We validate that params exist and are an array, then pass through
+  const sqlWithParams = query as SQL & { params?: unknown[] };
+  const params = sqlWithParams.params;
+
+  // Only pass args if params exist and is a non-empty array
+  if (params && Array.isArray(params) && params.length > 0) {
+    // Validate params are compatible types (libsql accepts: string | number | bigint | Uint8Array | null | boolean)
+    const validParams = params.filter(
+      (p): p is string | number | bigint | Uint8Array | null | boolean =>
+        typeof p === "string" ||
+        typeof p === "number" ||
+        typeof p === "bigint" ||
+        p instanceof Uint8Array ||
+        p === null ||
+        typeof p === "boolean",
+    );
+
+    if (validParams.length !== params.length) {
+      throw new Error(
+        "SQL params contain invalid types. libsql only accepts: string, number, bigint, Uint8Array, null, or boolean",
+      );
+    }
+
+    await client.execute(sqlString, validParams);
+  } else {
+    await client.execute(sqlString);
+  }
 }
 
 /**
@@ -91,10 +115,7 @@ export async function executeRawSQLString(
 ): Promise<void> {
   const client = getClient(instance);
 
-  await client.execute({
-    sql: sqlString,
-    args: [],
-  });
+  await client.execute(sqlString);
 }
 
 /**
@@ -123,4 +144,25 @@ function getClient(
 // Export schema and types
 export * from "./schema";
 export type Database = LibSQLDatabase<typeof schema>;
-export type { DatabaseInstance };
+
+// Re-export common drizzle-orm query builders for convenience
+// This allows consumers to import query builders from @safeurl/db instead of drizzle-orm directly
+export {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  gt,
+  lte,
+  lt,
+  ne,
+  like,
+  ilike,
+  inArray,
+  notInArray,
+  isNull,
+  isNotNull,
+  sql,
+  or,
+} from "drizzle-orm";
