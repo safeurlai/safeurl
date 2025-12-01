@@ -1,0 +1,54 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "worker-cf",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-11-28",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	/**
+	 * CPU time limit: 5 minutes (300,000 ms) for screenshot + AI analysis
+	 */
+	"limits": {
+		"cpu_ms": 300000
+	},
+	/**
+	 * Queue consumer configuration
+	 */
+	"queues": {
+		"consumers": [
+			{
+				"queue": "scan-jobs",
+				"max_batch_size": 10,
+				"max_batch_timeout": 30,
+				"max_retries": 3,
+				"retry_delay": 300,
+				"dead_letter_queue": "scan-jobs-dlq"
+			}
+		]
+	},
+	/**
+	 * Browser binding for Cloudflare Playwright
+	 */
+	"browser": {
+		"binding": "MYBROWSER"
+	},
+	/**
+	 * Environment Variables (non-sensitive)
+	 * Use secrets for sensitive data (set via: wrangler secret put <NAME>)
+	 */
+	"vars": {
+		"FETCH_TIMEOUT_MS": "30000",
+		"MAX_REDIRECT_DEPTH": "5"
+	}
+	/**
+	 * Note: Set these secrets via: wrangler secret put TURSO_CONNECTION_URL
+	 *                                    wrangler secret put TURSO_AUTH_TOKEN
+	 *                                    wrangler secret put OPENROUTER_API_KEY
+	 */
+}
