@@ -227,16 +227,21 @@ Worker (Railway/VPS) → Calls Cloudflare Worker → Fetches URL → Analyzes �
 
 ### Cloudflare Edge Workers Architecture
 
-| Service   | Platform           | Cost            |
-| --------- | ------------------ | --------------- |
-| Dashboard | Cloudflare Pages   | Free            |
-| API       | Railway            | $5-7/month      |
-| Redis     | Railway Addon      | ~$3/month       |
-| Worker    | Railway            | Included        |
-| Fetcher   | Cloudflare Workers | Free - $5/month |
-| **Total** |                    | **~$5-7/month** |
+| Service   | Platform           | Cost             |
+| --------- | ------------------ | ---------------- |
+| Dashboard | Cloudflare Pages   | Free             |
+| API       | Railway            | $5-7/month       |
+| Redis     | Upstash (Fixed)    | $10/month        |
+| Worker    | Railway            | Included         |
+| Fetcher   | Cloudflare Workers | Free - $5/month  |
+| **Total** |                    | **~$5-12/month** |
 
-**Savings:** ~$4-6/month (40-50% reduction!)
+**Note:** Upstash Redis ($10/month) replaces Railway Redis (~$3/month), adding $7/month but providing:
+
+- Global distribution
+- Platform-agnostic (works from anywhere)
+- Better serverless support
+- Free tier for development
 
 ---
 

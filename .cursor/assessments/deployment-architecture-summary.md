@@ -4,15 +4,15 @@
 
 ### Service Distribution
 
-| Service       | Platform      | Why This Platform                 | Cost                |
-| ------------- | ------------- | --------------------------------- | ------------------- |
-| **Dashboard** | Vercel        | Optimized for Next.js, free tier  | Free - $20/month    |
-| **API**       | Railway       | Easy deployment, good pricing     | ~$2-3/month         |
-| **Redis**     | Railway Addon | Managed service, easy integration | ~$3/month           |
-| **Worker**    | Hetzner VPS   | Docker socket access required     | ~€4/month           |
-| **Database**  | Turso         | Cloud-hosted, works from anywhere | Free tier available |
+| Service       | Platform    | Why This Platform                     | Cost                |
+| ------------- | ----------- | ------------------------------------- | ------------------- |
+| **Dashboard** | Vercel      | Optimized for Next.js, free tier      | Free - $20/month    |
+| **API**       | Railway     | Easy deployment, good pricing         | ~$2-3/month         |
+| **Redis**     | Upstash     | Serverless, global, platform-agnostic | Free - $10/month    |
+| **Worker**    | Hetzner VPS | Docker socket access required         | ~€4/month           |
+| **Database**  | Turso       | Cloud-hosted, works from anywhere     | Free tier available |
 
-**Total Monthly Cost:** ~$9-11/month (with Vercel free tier)
+**Total Monthly Cost:** ~$9-11/month (with Vercel free tier) or ~$5-12/month (with Cloudflare Workers + Upstash)
 
 ---
 
@@ -52,16 +52,19 @@
 
 ---
 
-### ✅ Redis on Railway Addon
+### ✅ Redis on Upstash ⭐ **RECOMMENDED**
 
 **Benefits:**
 
-- Managed Redis service
-- Easy integration with Railway services
-- Automatic backups
-- No manual setup required
+- Serverless Redis (scales to zero)
+- Global distribution (multi-region)
+- Platform-agnostic (works from Railway, Cloudflare, Hetzner)
+- Free tier available (500k commands/month)
+- Fixed plans for predictable costs ($10/month for 250 MB)
+- Fully compatible with BullMQ
+- Automatic backups and monitoring
 
-**Alternative:** Could use Upstash Redis (serverless) for similar cost
+**Alternative:** Railway Redis Addon (~$3/month) - cheaper but less flexible
 
 ---
 
@@ -156,11 +159,17 @@
   - `CLERK_PUBLISHABLE_KEY`
 - [ ] Deploy and verify health endpoint
 
-### 3. Redis (Railway Addon)
+### 3. Redis (Upstash) ⭐ **RECOMMENDED**
 
-- [ ] Add Redis addon to Railway project
-- [ ] Note connection details
-- [ ] Update API environment variables
+- [ ] Create Upstash account
+- [ ] Create Redis database
+- [ ] Choose pricing plan (Free for dev, Fixed 250 MB for prod)
+- [ ] Get connection details (endpoint, password)
+- [ ] Update environment variables in API and Worker:
+  - `REDIS_HOST=your-db.upstash.io`
+  - `REDIS_PORT=6379`
+  - `REDIS_PASSWORD=your-token`
+  - `REDIS_TLS=true` (optional but recommended)
 
 ### 4. Worker (Hetzner VPS)
 
@@ -203,9 +212,10 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 PORT=8080
 TURSO_CONNECTION_URL=libsql://...
 TURSO_AUTH_TOKEN=...
-REDIS_HOST=redis.railway.internal
+REDIS_HOST=your-db.upstash.io
 REDIS_PORT=6379
-REDIS_PASSWORD=...
+REDIS_PASSWORD=your-upstash-token
+REDIS_TLS=true
 CLERK_SECRET_KEY=sk_...
 CLERK_PUBLISHABLE_KEY=pk_...
 CORS_ORIGIN=https://your-dashboard.vercel.app
@@ -214,9 +224,10 @@ CORS_ORIGIN=https://your-dashboard.vercel.app
 ### Worker (Hetzner VPS)
 
 ```env
-REDIS_HOST=redis.railway.internal  # Or external Redis URL
+REDIS_HOST=your-db.upstash.io
 REDIS_PORT=6379
-REDIS_PASSWORD=...
+REDIS_PASSWORD=your-upstash-token
+REDIS_TLS=true
 TURSO_CONNECTION_URL=libsql://...
 TURSO_AUTH_TOKEN=...
 OPENROUTER_API_KEY=...
@@ -244,7 +255,14 @@ CONTAINER_CPU_LIMIT=0.5
 - Automatic HTTPS
 - Private networking between services
 - Environment variables encrypted
-- Redis addon uses private network
+
+### Upstash Redis
+
+- TLS encryption by default
+- Global distribution
+- Automatic backups
+- Advanced monitoring
+- Platform-agnostic (works from anywhere)
 
 ### Hetzner VPS
 
@@ -303,8 +321,9 @@ CONTAINER_CPU_LIMIT=0.5
 
 **Redis:**
 
-- Railway addon scales automatically
-- Consider Upstash for serverless Redis if needed
+- Upstash scales automatically (serverless)
+- Fixed plans for predictable costs
+- Free tier for development
 
 ---
 
@@ -314,8 +333,9 @@ CONTAINER_CPU_LIMIT=0.5
    - Configure automatic backups
    - Regular snapshot exports
 
-2. **Redis**
-   - Railway addon includes backups
+2. **Redis (Upstash)**
+   - Automatic backups included
+   - Point-in-time recovery available
    - Export data periodically if needed
 
 3. **VPS (Worker)**
