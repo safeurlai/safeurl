@@ -5,8 +5,6 @@ import {
   purchaseCreditsResponseSchema,
 } from "@safeurl/core";
 import { env } from "cloudflare:workers";
-import { Elysia } from "elysia";
-import { clerkPlugin } from "elysia-clerk";
 
 import { getDb } from "../../lib/db";
 import { privateSubrouter } from "../../plugins/auth";
