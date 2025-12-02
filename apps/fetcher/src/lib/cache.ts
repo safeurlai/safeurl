@@ -1,13 +1,6 @@
 import { createLogger } from "@safeurl/core/logger";
 import { err, ok, Result, wrapDbQuery } from "@safeurl/core/result";
-import {
-  and,
-  createDatabase,
-  desc,
-  eq,
-  gte,
-  scanResults,
-} from "@safeurl/db";
+import { and, createDatabase, desc, eq, gte, scanResults } from "@safeurl/db";
 
 const logger = createLogger({ prefix: "fetcher-cache" });
 

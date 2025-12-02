@@ -1,0 +1,24 @@
+{
+  "name": "api-cf",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.4.0",
+    "@safeurl/core": "workspace:*",
+    "@safeurl/db": "workspace:*",
+    "drizzle-orm": "^0.44.7",
+    "elysia": "^1.4.16",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.5.2",
+    "wrangler": "^4.51.0"
+  }
+}

@@ -1,0 +1,43 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api-cf",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  /**
+   * Environment Variables
+   * TURSO_CONNECTION_URL and TURSO_AUTH_TOKEN should be set as secrets:
+   * wrangler secret put TURSO_CONNECTION_URL
+   * wrangler secret put TURSO_AUTH_TOKEN
+   */
+  "vars": {
+    "CORS_ORIGIN": "*",
+  },
+  /**
+   * Queue Bindings
+   * Producer binding for sending scan jobs to the queue
+   * The queue consumer should be configured in a separate worker
+   */
+  "queues": {
+    "producers": [
+      {
+        "binding": "SCAN_QUEUE",
+        "queue": "scan-jobs",
+      },
+    ],
+  },
+  /**
+   * Future: D1 Database binding (when migrating from Turso)
+   * [[d1_databases]]
+   * binding = "DB"
+   * database_name = "safeurl-db"
+   * database_id = "your-database-id"
+   */
+}
