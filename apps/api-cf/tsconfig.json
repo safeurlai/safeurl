@@ -31,6 +31,8 @@
     /* Ensure that casing is correct in imports. */
     "forceConsistentCasingInFileNames": true,
 
+    "verbatimModuleSyntax": true,
+
     /* Enable all strict type-checking options. */
     "strict": true,
 

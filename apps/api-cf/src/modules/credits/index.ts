@@ -6,8 +6,10 @@ import {
 } from "@safeurl/core";
 import { env } from "cloudflare:workers";
 import { Elysia } from "elysia";
+import { clerkPlugin } from "elysia-clerk";
 
 import { getDb } from "../../lib/db";
+import { privateSubrouter } from "../../plugins/auth";
 import { getCreditBalance, purchaseCredits } from "./service";
 
 /**
@@ -15,7 +17,7 @@ import { getCreditBalance, purchaseCredits } from "./service";
  */
 const DEFAULT_USER_ID = "user_anonymous"; // Default user ID when auth is disabled
 
-export const creditsModule = new Elysia({ prefix: "/credits" })
+export const creditsModule = privateSubrouter("/credits")
   .get(
     "/",
     async ({ set }) => {

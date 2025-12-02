@@ -5,7 +5,7 @@ import {
   wrapDbQuery,
   type PurchaseCreditsRequest,
 } from "@safeurl/core";
-import { users, wallets } from "@safeurl/db";
+import { users, wallets, type DatabaseInstance } from "@safeurl/db";
 import { eq } from "drizzle-orm";
 
 /**
@@ -21,16 +21,16 @@ interface ServiceError {
  * Ensure user exists in database
  */
 async function ensureUserExists(
-  dbInstance: ReturnType<typeof import("../../lib/db").getDb>,
+  db: DatabaseInstance["db"],
   userId: string,
 ): Promise<void> {
   try {
-    await dbInstance.insert(users).values({
+    await db.insert(users).values({
       clerkUserId: userId,
     });
   } catch (error) {
     // User might already exist, verify by selecting
-    const existing = await dbInstance
+    const existing = await db
       .select()
       .from(users)
       .where(eq(users.clerkUserId, userId))
