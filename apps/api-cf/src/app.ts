@@ -10,7 +10,7 @@ import { errorHandlerPlugin } from "./plugins/error-handler";
  * Main ElysiaJS application for Cloudflare Workers
  * Configures plugins and routes
  */
-export const app = new Elysia({
+export const baseApp = new Elysia({
   adapter: CloudflareAdapter,
 })
   // Global error handler (must be first)
@@ -51,7 +51,7 @@ export const app = new Elysia({
   });
 
 // Export app type before compilation (for Eden type inference)
-export type App = typeof app;
+export type App = typeof baseApp;
 
 // Compile the app for Cloudflare Workers runtime
-export const compiledApp = app.compile();
+export const app = baseApp.compile();

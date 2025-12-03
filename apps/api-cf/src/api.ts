@@ -4,7 +4,7 @@
  */
 
 // Export app and App type (for Eden type inference)
-export { app, compiledApp, type App } from "./app";
+export { baseApp as app, app as compiledApp, type App } from "./app";
 
 // Export modules
 export * from "./modules";
@@ -14,4 +14,3 @@ export * from "./plugins";
 
 // Export lib utilities
 export * from "./lib";
-
