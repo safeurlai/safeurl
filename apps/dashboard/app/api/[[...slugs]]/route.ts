@@ -12,7 +12,8 @@ import {
  * Elysia server for Next.js API routes
  * Composes modules for different API endpoints:
  * - API keys: handled directly in this server
- * - Scans & Credits: proxied to Cloudflare Workers API
+ * - Credits: handled directly in this server
+ * - Scans: proxied to Cloudflare Workers API
  * - Checkout: Stripe Checkout session creation (authenticated)
  * - Webhooks: Stripe webhook handler (no auth, verifies Stripe signature)
  */
@@ -31,10 +32,10 @@ const app = new Elysia({ prefix: "/api" })
     app
       // API Keys endpoints (handled directly, not proxied)
       .use(apiKeysModule)
+      // Credits endpoints (handled directly, not proxied)
+      .use(creditsModule)
       // Scans endpoints (proxied to Cloudflare Workers API)
       .use(scansModule)
-      // Credits endpoints (proxied to Cloudflare Workers API)
-      .use(creditsModule)
       // Checkout endpoints (Stripe Checkout, authenticated)
       .use(checkoutModule),
   );
