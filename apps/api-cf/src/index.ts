@@ -3,10 +3,7 @@
  * Uses Elysia with Cloudflare Workers adapter
  */
 
-import { app } from "./app";
-
-// Compile the app for Cloudflare Workers
-const compiledApp = app.compile();
+import { compiledApp } from "./app";
 
 // Export the default handler for Cloudflare Workers
 export default {

@@ -48,8 +48,10 @@ export const app = new Elysia({
         },
       };
     }
-  })
-  .compile();
+  });
 
-// Export app type
+// Export app type before compilation (for Eden type inference)
 export type App = typeof app;
+
+// Compile the app for Cloudflare Workers runtime
+export const compiledApp = app.compile();

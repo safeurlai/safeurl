@@ -4,8 +4,14 @@ import {
 } from "@safeurl/core/schemas";
 import { Elysia } from "elysia";
 
-// Backend API URL - defaults to localhost:8080 in development
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:8080";
+// Backend API URL - points to Cloudflare Workers API
+// In development, uses localhost:8787 (Wrangler default)
+// In production, uses the deployed Cloudflare Workers URL
+const BACKEND_API_URL =
+  process.env.BACKEND_API_URL ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8787"
+    : "https://api-cf.alanrsoares.workers.dev");
 
 /**
  * Helper to proxy requests to the backend API
@@ -56,7 +62,9 @@ async function proxyRequest(
 
 /**
  * Elysia server for Next.js API routes
- * Acts as a proxy/middleware layer to the backend API
+ * Acts as a proxy/middleware layer to the Cloudflare Workers API
+ * Note: Eden client connects directly to the API, but this proxy can be used
+ * for SSR or as a fallback if needed.
  */
 const app = new Elysia({ prefix: "/api" })
   // Health check
