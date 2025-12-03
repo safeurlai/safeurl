@@ -6,4 +6,11 @@ export type {
   PurchaseCreditsRequest,
   ScanJobState,
   RiskCategory,
+  ApiKeyResponse,
+  CreateApiKeyResponse,
+  ApiKeyListResponse,
+  ApiKeyCreation,
 } from "@safeurl/core/schemas";
+
+// API Key types for dashboard
+export type CreateApiKeyRequest = ApiKeyCreation;

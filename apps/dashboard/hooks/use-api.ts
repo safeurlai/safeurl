@@ -7,6 +7,9 @@ import {
 
 import { api } from "~/lib/eden";
 import type {
+  ApiKeyListResponse,
+  CreateApiKeyRequest,
+  CreateApiKeyResponse,
   CreateScanRequest,
   CreditBalanceResponse,
   PurchaseCreditsRequest,
@@ -38,6 +41,10 @@ export const queryKeys = {
   },
   credits: {
     balance: () => ["credits", "balance"] as const,
+  },
+  apiKeys: {
+    all: () => ["apiKeys"] as const,
+    list: () => ["apiKeys", "list"] as const,
   },
 } as const;
 
@@ -190,6 +197,99 @@ export function usePurchaseCredits() {
     onSuccess: () => {
       // Invalidate credit balance to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.credits.balance() });
+    },
+  });
+}
+
+/**
+ * Hook to fetch user's API keys
+ */
+export function useApiKeys() {
+  return useQuery({
+    queryKey: queryKeys.apiKeys.list(),
+    queryFn: async () => {
+      const { data, error } = await api.v1["api-keys"].get();
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to fetch API keys");
+      }
+      return data as ApiKeyListResponse;
+    },
+    staleTime: 60 * 1000, // Consider data stale after 1 minute
+    refetchOnWindowFocus: true, // Refetch when user returns to the tab
+  });
+}
+
+/**
+ * Hook to create a new API key
+ */
+export function useCreateApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: CreateApiKeyRequest) => {
+      const { data, error } = await api.v1["api-keys"].post(request);
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to create API key");
+      }
+      return data as CreateApiKeyResponse;
+    },
+    onSuccess: () => {
+      // Invalidate API keys list to refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list() });
+    },
+  });
+}
+
+/**
+ * Hook to revoke an API key
+ */
+export function useRevokeApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (keyId: string) => {
+      const { data, error } = await api.v1["api-keys"]({ id: keyId }).delete();
+      if (error) {
+        const errorData =
+          typeof error.value === "string"
+            ? JSON.parse(error.value)
+            : error.value;
+        throw new ApiError(
+          errorData?.error?.code || "unknown_error",
+          errorData?.error?.message || "An error occurred",
+          errorData?.error?.details,
+        );
+      }
+      if (!data) {
+        throw new ApiError("unknown_error", "Failed to revoke API key");
+      }
+      return data as { id: string };
+    },
+    onSuccess: () => {
+      // Invalidate API keys list to refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list() });
     },
   });
 }

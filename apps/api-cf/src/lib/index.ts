@@ -12,4 +12,3 @@ export {
   sendScanJobsToQueue,
   type ScanJobMessage,
 } from "./queue";
-

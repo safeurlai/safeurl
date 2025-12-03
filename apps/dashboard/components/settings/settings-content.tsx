@@ -1,7 +1,7 @@
 "use client";
 
 import { AccountSettings } from "~/components/settings/account-settings";
-import { ApiKeyManagement } from "~/components/settings/api-key-management";
+import { ApiKeys } from "~/components/settings/api-keys/api-keys";
 import { CreditPurchase } from "~/components/settings/credit-purchase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
@@ -27,7 +27,7 @@ export function SettingsContent() {
         </TabsContent>
 
         <TabsContent value="api-keys">
-          <ApiKeyManagement />
+          <ApiKeys />
         </TabsContent>
 
         <TabsContent value="account">

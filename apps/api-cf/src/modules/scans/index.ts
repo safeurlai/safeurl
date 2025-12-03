@@ -69,13 +69,11 @@ function formatScanResponse(job: {
 /**
  * Scans module routes
  */
-const DEFAULT_USER_ID = "user_anonymous"; // Default user ID when auth is disabled
-
 export const scansModule = new Elysia({ prefix: "/scans" })
   .post(
     "/",
-    async ({ body, set }) => {
-      console.log(`[POST /v1/scans] Request received`);
+    async ({ body, set, userId }) => {
+      console.log(`[POST /v1/scans] Request received for userId: ${userId}`);
 
       const db = getDb(env);
       const queue = env.SCAN_QUEUE as Queue<ScanJobMessage>;
@@ -90,7 +88,7 @@ export const scansModule = new Elysia({ prefix: "/scans" })
         };
       }
 
-      const result = await createScanJob(db, queue, DEFAULT_USER_ID, body);
+      const result = await createScanJob(db, queue, userId, body);
 
       if (result.isErr()) {
         const error = result.error;
@@ -149,11 +147,13 @@ export const scansModule = new Elysia({ prefix: "/scans" })
   )
   .get(
     "/:id",
-    async ({ params, set }) => {
-      console.log(`[GET /v1/scans/:id] Request received for id: ${params.id}`);
+    async ({ params, set, userId }) => {
+      console.log(
+        `[GET /v1/scans/:id] Request received for id: ${params.id}, userId: ${userId}`,
+      );
 
       const db = getDb(env);
-      const result = await getScanJob(db, params.id, DEFAULT_USER_ID);
+      const result = await getScanJob(db, params.id, userId);
 
       if (result.isErr()) {
         const error = result.error;

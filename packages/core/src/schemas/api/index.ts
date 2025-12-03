@@ -215,6 +215,40 @@ export const purchaseCreditsResponseSchema = z.object({
 });
 
 // ============================================================================
+// API Key Response Schemas
+// ============================================================================
+
+/**
+ * API key response schema (without plaintext key)
+ * Used when listing API keys
+ */
+export const apiKeyResponseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  scopes: z.array(z.string()),
+  expiresAt: z.string().datetime().nullable(),
+  lastUsedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  revokedAt: z.string().datetime().nullable(),
+});
+
+/**
+ * Create API key response schema (includes plaintext key once)
+ * Only returned when creating a new API key
+ */
+export const createApiKeyResponseSchema = z.object({
+  id: z.string().uuid(),
+  key: z.string().describe("Plaintext API key (only shown once)"),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+});
+
+/**
+ * API key list response schema
+ */
+export const apiKeyListResponseSchema = z.array(apiKeyResponseSchema);
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -232,3 +266,6 @@ export type CreditTransaction = z.infer<typeof creditTransactionSchema>;
 export type PurchaseCreditsResponse = z.infer<
   typeof purchaseCreditsResponseSchema
 >;
+export type ApiKeyResponse = z.infer<typeof apiKeyResponseSchema>;
+export type CreateApiKeyResponse = z.infer<typeof createApiKeyResponseSchema>;
+export type ApiKeyListResponse = z.infer<typeof apiKeyListResponseSchema>;

@@ -1,9 +1,9 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "~/components/ui/button";
@@ -25,43 +25,33 @@ const urlSchema = z
 export function NewScanForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const createScan = useCreateScan();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const form = useForm({
+    defaultValues: {
+      url: "",
+    },
+    onSubmit: async ({ value }) => {
+      try {
+        const result = await createScan.mutateAsync({ url: value.url });
 
-    // Validate URL
-    const validation = urlSchema.safeParse(url);
-    if (!validation.success) {
-      const errorMessage =
-        validation.error.issues[0]?.message || "Invalid URL format";
-      setError(errorMessage);
-      return;
-    }
+        toast({
+          title: "Scan created",
+          description: "Your scan has been queued successfully.",
+        });
 
-    try {
-      const result = await createScan.mutateAsync({ url });
-
-      toast({
-        title: "Scan created",
-        description: "Your scan has been queued successfully.",
-      });
-
-      router.push(`/scans/${result.id}`);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
-      toast({
-        title: "Failed to create scan",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
+        router.push(`/scans/${result.id}`);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "An unexpected error occurred";
+        toast({
+          title: "Failed to create scan",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    },
+  });
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -89,32 +79,68 @@ export function NewScanForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="url" className="text-sm font-medium">
-                  URL
-                </label>
-                <input
-                  id="url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  className="mt-1 w-full px-3 py-2 border rounded-md"
-                  disabled={createScan.isPending}
-                  required
-                />
-                {error && (
-                  <p className="mt-1 text-sm text-destructive">{error}</p>
-                )}
-              </div>
-              <Button
-                type="submit"
-                disabled={createScan.isPending}
-                className="w-full"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit();
+              }}
+              className="space-y-4"
+            >
+              <form.Field
+                name="url"
+                validators={{
+                  onChange: ({ value }) => {
+                    const result = urlSchema.safeParse(value);
+                    return result.success
+                      ? undefined
+                      : result.error.errors[0]?.message;
+                  },
+                }}
               >
-                {createScan.isPending ? "Creating scan..." : "Create Scan"}
-              </Button>
+                {(field) => (
+                  <div>
+                    <label htmlFor={field.name} className="text-sm font-medium">
+                      URL
+                    </label>
+                    <input
+                      id={field.name}
+                      name={field.name}
+                      type="url"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="https://example.com"
+                      className="mt-1 w-full px-3 py-2 border rounded-md"
+                      disabled={createScan.isPending}
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="mt-1 text-sm text-destructive">
+                          {field.state.meta.errors[0]}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !canSubmit || isSubmitting || createScan.isPending
+                    }
+                    className="w-full"
+                  >
+                    {isSubmitting || createScan.isPending
+                      ? "Creating scan..."
+                      : "Create Scan"}
+                  </Button>
+                )}
+              </form.Subscribe>
             </form>
           </CardContent>
         </Card>

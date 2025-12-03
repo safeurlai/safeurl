@@ -13,17 +13,15 @@ import { getCreditBalance, purchaseCredits } from "./service";
 /**
  * Credits module routes
  */
-const DEFAULT_USER_ID = "user_anonymous"; // Default user ID when auth is disabled
-
 export const creditsModule = privateSubrouter("/credits")
   .get(
     "/",
-    async ({ set }) => {
-      console.log(`[GET /v1/credits] Request received`);
+    async ({ set, userId }) => {
+      console.log(`[GET /v1/credits] Request received for userId: ${userId}`);
 
       try {
         const db = getDb(env);
-        const result = await getCreditBalance(db, DEFAULT_USER_ID);
+        const result = await getCreditBalance(db, userId);
 
         if (result.isErr()) {
           console.error(`[GET /v1/credits] Error:`, result.error);
@@ -49,7 +47,7 @@ export const creditsModule = privateSubrouter("/credits")
         );
         return {
           balance: balance.balance,
-          userId: DEFAULT_USER_ID,
+          userId: userId,
           updatedAt: balance.updatedAt.toISOString(),
         };
       } catch (error) {
@@ -85,11 +83,13 @@ export const creditsModule = privateSubrouter("/credits")
   )
   .post(
     "/purchase",
-    async ({ body, set }) => {
-      console.log(`[POST /v1/credits/purchase] Request received`);
+    async ({ body, set, userId }) => {
+      console.log(
+        `[POST /v1/credits/purchase] Request received for userId: ${userId}`,
+      );
 
       const db = getDb(env);
-      const result = await purchaseCredits(db, DEFAULT_USER_ID, body);
+      const result = await purchaseCredits(db, userId, body);
 
       if (result.isErr()) {
         const error = result.error;
@@ -121,7 +121,7 @@ export const creditsModule = privateSubrouter("/credits")
       set.status = 201;
       return {
         id: purchase.transactionId,
-        userId: DEFAULT_USER_ID,
+        userId: userId,
         amount: body.amount,
         paymentMethod: body.paymentMethod,
         status: "completed",

@@ -4,6 +4,7 @@ export * from "./wallets";
 export * from "./scan-jobs";
 export * from "./scan-results";
 export * from "./audit-logs";
+export * from "./api-keys";
 
 // Re-export types for convenience
 export type { User, NewUser } from "./users";
@@ -11,3 +12,4 @@ export type { Wallet, NewWallet } from "./wallets";
 export type { ScanJob, NewScanJob, ScanJobState } from "./scan-jobs";
 export type { ScanResult, NewScanResult } from "./scan-results";
 export type { AuditLog, NewAuditLog } from "./audit-logs";
+export type { ApiKey, NewApiKey } from "./api-keys";

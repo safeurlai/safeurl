@@ -2,8 +2,10 @@ import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 
+import { apiKeysModule } from "./modules/api-keys";
 import { creditsModule } from "./modules/credits";
 import { scansModule } from "./modules/scans";
+import { apiKeyOrClerkAuthPlugin } from "./plugins/api-key-auth";
 import { errorHandlerPlugin } from "./plugins/error-handler";
 
 /**
@@ -35,7 +37,15 @@ export const baseApp = new Elysia({
   }))
 
   // API routes with /v1 prefix
-  .group("/v1", (app) => app.use(scansModule).use(creditsModule))
+  .group("/v1", (app) =>
+    app
+      .use(apiKeysModule)
+      // Apply API key or Clerk auth to scans and credits modules
+      // This allows both API key and Clerk authentication
+      .group("", (app) =>
+        app.use(apiKeyOrClerkAuthPlugin).use(scansModule).use(creditsModule),
+      ),
+  )
 
   // 404 handler
   .onError(({ code, set }) => {
