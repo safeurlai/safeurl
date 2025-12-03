@@ -13,7 +13,7 @@ import {
  * Composes modules for different API endpoints:
  * - API keys: handled directly in this server
  * - Credits: handled directly in this server
- * - Scans: proxied to Cloudflare Workers API
+ * - Scans: proxied to Cloudflare Workers API (requires queue operations)
  * - Checkout: Stripe Checkout session creation (authenticated)
  * - Webhooks: Stripe webhook handler (no auth, verifies Stripe signature)
  */
@@ -34,7 +34,7 @@ const app = new Elysia({ prefix: "/api" })
       .use(apiKeysModule)
       // Credits endpoints (handled directly, not proxied)
       .use(creditsModule)
-      // Scans endpoints (proxied to Cloudflare Workers API)
+      // Scans endpoints (proxied to Cloudflare Workers API - requires queue operations)
       .use(scansModule)
       // Checkout endpoints (Stripe Checkout, authenticated)
       .use(checkoutModule),

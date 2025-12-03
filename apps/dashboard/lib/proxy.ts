@@ -1,6 +1,6 @@
 /**
  * Proxy utility for forwarding requests to the Cloudflare Workers API
- * Used for scans endpoints that are handled by api-cf
+ * Used for scans endpoints that require queue operations (publishing/reading)
  */
 
 // Backend API URL - points to Cloudflare Workers API
