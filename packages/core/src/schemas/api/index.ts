@@ -83,8 +83,8 @@ export const purchaseCreditsRequestSchema = z.object({
     .positive("Credit amount must be positive")
     .max(1000000, "Credit amount exceeds maximum"),
   paymentMethod: z
-    .enum(["crypto", "stripe"])
-    .describe("Payment method for credit purchase"),
+    .enum(["stripe"])
+    .describe("Payment method for credit purchase (Stripe only)"),
   paymentDetails: z
     .record(z.string(), z.unknown())
     .optional()
@@ -175,7 +175,7 @@ export const creditPurchaseSchema = z.object({
   id: z.string().uuid(),
   userId: z.string(),
   amount: z.number().int().positive(),
-  paymentMethod: z.enum(["crypto", "stripe"]),
+  paymentMethod: z.enum(["stripe"]),
   paymentDetails: z.record(z.string(), z.unknown()).optional(),
   status: z.enum(["pending", "completed", "failed"]),
   createdAt: z.string().datetime(),
@@ -207,7 +207,7 @@ export const purchaseCreditsResponseSchema = z.object({
   id: z.string().uuid(),
   userId: z.string(),
   amount: z.number().int().positive(),
-  paymentMethod: z.enum(["crypto", "stripe"]),
+  paymentMethod: z.enum(["stripe"]),
   status: z.string(),
   createdAt: z.string().datetime(),
   completedAt: z.string().datetime(),

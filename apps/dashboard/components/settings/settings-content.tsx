@@ -1,8 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { AccountSettings } from "~/components/settings/account-settings";
 import { ApiKeys } from "~/components/settings/api-keys/api-keys";
 import { CreditPurchase } from "~/components/settings/credit-purchase";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 export function SettingsContent() {
@@ -23,7 +27,22 @@ export function SettingsContent() {
         </TabsList>
 
         <TabsContent value="credits">
-          <CreditPurchase />
+          <Suspense
+            fallback={
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-64 mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </CardContent>
+              </Card>
+            }
+          >
+            <CreditPurchase />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="api-keys">

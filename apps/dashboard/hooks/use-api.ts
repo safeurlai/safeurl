@@ -12,7 +12,6 @@ import type {
   CreateApiKeyResponse,
   CreateScanRequest,
   CreditBalanceResponse,
-  PurchaseCreditsRequest,
   ScanResponse,
 } from "~/lib/types";
 
@@ -161,47 +160,6 @@ export function useCreateScan() {
 }
 
 /**
- * Hook to purchase credits
- */
-export function usePurchaseCredits() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (request: PurchaseCreditsRequest) => {
-      const { data, error } = await api.v1.credits.purchase.post(request);
-      if (error) {
-        const errorData =
-          typeof error.value === "string"
-            ? JSON.parse(error.value)
-            : error.value;
-        throw new ApiError(
-          errorData?.error?.code || "unknown_error",
-          errorData?.error?.message || "An error occurred",
-          errorData?.error?.details,
-        );
-      }
-      if (!data) {
-        throw new ApiError("unknown_error", "Failed to purchase credits");
-      }
-      return data as {
-        id: string;
-        userId: string;
-        amount: number;
-        paymentMethod: string;
-        status: string;
-        createdAt: string;
-        completedAt: string;
-        newBalance: number;
-      };
-    },
-    onSuccess: () => {
-      // Invalidate credit balance to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.credits.balance() });
-    },
-  });
-}
-
-/**
  * Hook to fetch user's API keys
  */
 export function useApiKeys() {
@@ -238,7 +196,14 @@ export function useCreateApiKey() {
 
   return useMutation({
     mutationFn: async (request: ApiKeyCreation) => {
-      const { data, error } = await api.v1["api-keys"].post(request);
+      const { data, error } = await api.v1["api-keys"].post({
+        name: request.name,
+        scopes: request.scopes,
+        expiresAt: request.expiresAt || undefined,
+        amount: 0,
+        paymentMethod: "stripe",
+        paymentDetails: {},
+      });
       if (error) {
         const errorData =
           typeof error.value === "string"

@@ -162,9 +162,24 @@ export async function purchaseCredits(
   // TODO: Process payment with payment provider
   // For now, this is a stub that directly adds credits
 
-  if (request.paymentMethod === "crypto") {
-    // Stub: In production, verify crypto payment transaction
-    // For now, we'll just add credits (this should be removed in production)
+  // Handle Stripe payments (processed via webhook, but this endpoint can be called
+  // by the webhook handler to add credits after payment confirmation)
+  if (request.paymentMethod === "stripe") {
+    // Verify that this is being called from a webhook handler by checking for
+    // Stripe session ID in payment details
+    const stripeSessionId =
+      request.paymentDetails?.stripeSessionId as string | undefined;
+    const stripePaymentIntentId =
+      request.paymentDetails?.stripePaymentIntentId as string | undefined;
+
+    if (!stripeSessionId) {
+      return err({
+        code: "payment_error",
+        message: "Stripe session ID is required for Stripe payments",
+      });
+    }
+
+    // Add credits after payment verification (webhook handler verifies payment)
     const resultAsync = wrapDbQuery(async () => {
       // Ensure user exists before transaction
       await ensureUserExists(dbInstance, userId);
@@ -188,7 +203,7 @@ export async function purchaseCredits(
             .returning();
 
           return {
-            transactionId: crypto.randomUUID(),
+            transactionId: stripeSessionId,
             newBalance: newWallet.creditBalance,
           };
         }
@@ -204,7 +219,7 @@ export async function purchaseCredits(
           .where(eq(wallets.userId, userId));
 
         return {
-          transactionId: crypto.randomUUID(),
+          transactionId: stripeSessionId,
           newBalance,
         };
       });

@@ -170,69 +170,7 @@ export async function purchaseCredits(
 > {
   // TODO: Process payment with payment provider
   // For now, this is a stub that directly adds credits
-
-  if (request.paymentMethod === "crypto") {
-    // Stub: In production, verify crypto payment transaction
-    // For now, we'll just add credits (this should be removed in production)
-    const resultAsync = wrapDbQuery(async () => {
-      // Ensure user exists before transaction
-      await ensureUserExists(userId);
-
-      return await db.transaction(async (tx) => {
-        // Get current balance or create wallet
-        const wallet = await tx
-          .select()
-          .from(wallets)
-          .where(eq(wallets.userId, userId))
-          .limit(1);
-
-        if (wallet.length === 0) {
-          // Create wallet if it doesn't exist
-          const [newWallet] = await tx
-            .insert(wallets)
-            .values({
-              userId,
-              creditBalance: request.amount,
-            })
-            .returning();
-
-          return {
-            transactionId: crypto.randomUUID(),
-            newBalance: newWallet.creditBalance,
-          };
-        }
-
-        // Update balance
-        const newBalance = wallet[0].creditBalance + request.amount;
-        await tx
-          .update(wallets)
-          .set({
-            creditBalance: newBalance,
-            updatedAt: new Date(),
-          })
-          .where(eq(wallets.userId, userId));
-
-        return {
-          transactionId: crypto.randomUUID(),
-          newBalance,
-        };
-      });
-    });
-
-    // Await the ResultAsync and convert DatabaseError to ServiceError
-    const result = await resultAsync;
-
-    if (result.isErr()) {
-      const dbError = result.error;
-      return err({
-        code: `database_${dbError.type}_error`,
-        message: dbError.message || "Database error occurred",
-        details: dbError,
-      });
-    }
-
-    return ok(result.value);
-  }
+  // Note: Stripe payments are handled via webhook in the dashboard app
 
   return err({
     code: "unsupported_payment_method",

@@ -1,12 +1,20 @@
 import { Elysia } from "elysia";
 
-import { apiKeysModule, creditsModule, scansModule } from "../modules";
+import {
+  apiKeysModule,
+  checkoutModule,
+  creditsModule,
+  scansModule,
+  webhooksModule,
+} from "../modules";
 
 /**
  * Elysia server for Next.js API routes
  * Composes modules for different API endpoints:
  * - API keys: handled directly in this server
  * - Scans & Credits: proxied to Cloudflare Workers API
+ * - Checkout: Stripe Checkout session creation (authenticated)
+ * - Webhooks: Stripe webhook handler (no auth, verifies Stripe signature)
  */
 const app = new Elysia({ prefix: "/api" })
   // Health check
@@ -14,6 +22,9 @@ const app = new Elysia({ prefix: "/api" })
     status: "ok",
     timestamp: new Date().toISOString(),
   }))
+
+  // Stripe webhooks (no auth required, but verifies Stripe signature)
+  .use(webhooksModule)
 
   // API routes with /v1 prefix
   .group("/v1", (app) =>
@@ -23,7 +34,9 @@ const app = new Elysia({ prefix: "/api" })
       // Scans endpoints (proxied to Cloudflare Workers API)
       .use(scansModule)
       // Credits endpoints (proxied to Cloudflare Workers API)
-      .use(creditsModule),
+      .use(creditsModule)
+      // Checkout endpoints (Stripe Checkout, authenticated)
+      .use(checkoutModule),
   );
 
 // Export app type for Eden
