@@ -1,5 +1,6 @@
 import { treaty } from "@elysiajs/eden";
-import type { App } from "@safeurl/api-cf";
+
+import { App } from "~/app/api/[[...slugs]]/route";
 
 /**
  * Get the API base URL for the Cloudflare Workers API
@@ -34,4 +35,4 @@ function getBaseUrl() {
  * Provides end-to-end type safety with the Elysia server
  * Connects to the Cloudflare Workers API (api-cf)
  */
-export const api = treaty<App>(getBaseUrl()).api;
+export const { api } = treaty<App>(getBaseUrl());

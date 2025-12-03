@@ -92,9 +92,7 @@ export function NewScanForm() {
                 validators={{
                   onChange: ({ value }) => {
                     const result = urlSchema.safeParse(value);
-                    return result.success
-                      ? undefined
-                      : result.error.errors[0]?.message;
+                    return result.success ? undefined : result.error.message;
                   },
                 }}
               >

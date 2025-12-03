@@ -1,70 +1,12 @@
-import {
-  createScanRequestSchema,
-  purchaseCreditsRequestSchema,
-} from "@safeurl/core/schemas";
 import { Elysia } from "elysia";
 
-// Backend API URL - points to Cloudflare Workers API
-// In development, uses localhost:8787 (Wrangler default)
-// In production, uses the deployed Cloudflare Workers URL
-const BACKEND_API_URL =
-  process.env.BACKEND_API_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:8787"
-    : "https://api-cf.alanrsoares.workers.dev");
-
-/**
- * Helper to proxy requests to the backend API
- */
-async function proxyRequest(
-  path: string,
-  options: RequestInit = {},
-): Promise<{ ok: boolean; data?: unknown; error?: unknown; status: number }> {
-  const url = `${BACKEND_API_URL}${path}`;
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: data || {
-          error: {
-            code: "unknown_error",
-            message: `HTTP ${response.status}: ${response.statusText}`,
-          },
-        },
-        status: response.status,
-      };
-    }
-
-    return { ok: true, data, status: response.status };
-  } catch (error) {
-    return {
-      ok: false,
-      error: {
-        error: {
-          code: "network_error",
-          message: error instanceof Error ? error.message : "Network error",
-        },
-      },
-      status: 500,
-    };
-  }
-}
+import { apiKeysModule, creditsModule, scansModule } from "../modules";
 
 /**
  * Elysia server for Next.js API routes
- * Acts as a proxy/middleware layer to the Cloudflare Workers API
- * Note: Eden client connects directly to the API, but this proxy can be used
- * for SSR or as a fallback if needed.
+ * Composes modules for different API endpoints:
+ * - API keys: handled directly in this server
+ * - Scans & Credits: proxied to Cloudflare Workers API
  */
 const app = new Elysia({ prefix: "/api" })
   // Health check
@@ -73,66 +15,15 @@ const app = new Elysia({ prefix: "/api" })
     timestamp: new Date().toISOString(),
   }))
 
-  // Scans endpoints
-  .post(
-    "/v1/scans",
-    async ({ body, set }) => {
-      const result = await proxyRequest("/v1/scans", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      if (!result.ok) {
-        set.status = result.status;
-        return result.error;
-      }
-
-      return result.data;
-    },
-    {
-      body: createScanRequestSchema,
-    },
-  )
-  .get("/v1/scans/:id", async ({ params: { id }, set }) => {
-    const result = await proxyRequest(`/v1/scans/${id}`);
-
-    if (!result.ok) {
-      set.status = result.status;
-      return result.error;
-    }
-
-    return result.data;
-  })
-
-  // Credits endpoints
-  .get("/v1/credits", async ({ set }) => {
-    const result = await proxyRequest("/v1/credits");
-
-    if (!result.ok) {
-      set.status = result.status;
-      return result.error;
-    }
-
-    return result.data;
-  })
-  .post(
-    "/v1/credits/purchase",
-    async ({ body, set }) => {
-      const result = await proxyRequest("/v1/credits/purchase", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      if (!result.ok) {
-        set.status = result.status;
-        return result.error;
-      }
-
-      return result.data;
-    },
-    {
-      body: purchaseCreditsRequestSchema,
-    },
+  // API routes with /v1 prefix
+  .group("/v1", (app) =>
+    app
+      // API Keys endpoints (handled directly, not proxied)
+      .use(apiKeysModule)
+      // Scans endpoints (proxied to Cloudflare Workers API)
+      .use(scansModule)
+      // Credits endpoints (proxied to Cloudflare Workers API)
+      .use(creditsModule),
   );
 
 // Export app type for Eden

@@ -1,7 +1,7 @@
 "use client";
 
+import { apiKeyCreationSchema } from "@safeurl/core/schemas";
 import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -13,17 +13,6 @@ import {
 } from "~/components/ui/card";
 import { useCreateApiKey } from "~/hooks/use-api";
 import { useToast } from "~/hooks/use-toast";
-
-const apiKeyCreationSchema = z.object({
-  name: z
-    .string()
-    .min(1, "API key name is required")
-    .max(100, "API key name exceeds maximum length"),
-  scopes: z
-    .array(z.enum(["scan:read", "scan:write", "credits:read"]))
-    .min(1, "At least one scope is required"),
-  expiresAt: z.string().datetime().optional().nullable(),
-});
 
 interface CreateApiKeyFormProps {
   onSuccess: (key: string) => void;

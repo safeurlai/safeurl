@@ -37,33 +37,15 @@ export const jwtPayloadSchema = z.object({
 });
 
 // ============================================================================
-// API Key Schemas
+// API Key Internal Schemas
 // ============================================================================
+// Note: API key request/response schemas are in @safeurl/core/schemas/api
+// These schemas are for internal validation and database operations
 
 /**
- * API key creation schema
- * Used when creating a new API key
- */
-export const apiKeyCreationSchema = z.object({
-  name: z
-    .string()
-    .min(1, "API key name is required")
-    .max(100, "API key name exceeds maximum length")
-    .describe("Human-readable name for the API key"),
-  expiresAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("Optional expiration date (ISO 8601)"),
-  scopes: z
-    .array(z.enum(["scan:read", "scan:write", "credits:read"]))
-    .min(1, "At least one scope is required")
-    .describe("API key scopes/permissions"),
-});
-
-/**
- * API key validation schema
- * Used when validating an API key
+ * API key internal schema
+ * Used for internal validation and database operations
+ * Contains sensitive fields like keyHash that should not be exposed in API responses
  */
 export const apiKeySchema = z.object({
   id: z.string().uuid(),
@@ -82,7 +64,7 @@ export const apiKeySchema = z.object({
 
 /**
  * API key validation request schema
- * Used when validating an API key from a request
+ * Used when validating an API key from a request (internal use)
  */
 export const apiKeyValidationSchema = z.object({
   key: z.string().min(1, "API key is required"),
@@ -166,7 +148,7 @@ export const userSchema = z.object({
 
 export type ClerkUserId = z.infer<typeof clerkUserIdSchema>;
 export type JwtPayload = z.infer<typeof jwtPayloadSchema>;
-export type ApiKeyCreation = z.infer<typeof apiKeyCreationSchema>;
+// Note: ApiKeyCreation type is exported from @safeurl/core/schemas/api
 export type ApiKey = z.infer<typeof apiKeySchema>;
 export type ApiKeyValidation = z.infer<typeof apiKeyValidationSchema>;
 export type WalletBalance = z.infer<typeof walletBalanceSchema>;

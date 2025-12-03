@@ -7,8 +7,8 @@ import {
 
 import { api } from "~/lib/eden";
 import type {
+  ApiKeyCreation,
   ApiKeyListResponse,
-  CreateApiKeyRequest,
   CreateApiKeyResponse,
   CreateScanRequest,
   CreditBalanceResponse,
@@ -237,7 +237,7 @@ export function useCreateApiKey() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (request: CreateApiKeyRequest) => {
+    mutationFn: async (request: ApiKeyCreation) => {
       const { data, error } = await api.v1["api-keys"].post(request);
       if (error) {
         const errorData =

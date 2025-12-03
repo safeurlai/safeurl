@@ -27,9 +27,9 @@ export const apiKeys = sqliteTable(
     keyHash: text("key_hash").notNull(),
     name: text("name").notNull(),
     scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
-    expiresAt: integer("expires_at", { mode: "timestamp" }).nullable(),
-    lastUsedAt: integer("last_used_at", { mode: "timestamp" }).nullable(),
-    revokedAt: integer("revoked_at", { mode: "timestamp" }).nullable(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(strftime('%s', 'now'))`),

@@ -13,7 +13,7 @@ import {
 /**
  * Generates SHA-256 hash of content
  *
- * @param content - Content to hash (string, ArrayBuffer, or Uint8Array)
+ * @param content - Content to hash (string)
  * @returns Result with hex-encoded SHA-256 hash
  *
  * @example
@@ -26,18 +26,11 @@ import {
  * ```
  */
 export async function generateContentHash(
-  content: string | ArrayBuffer | Uint8Array,
+  content: string,
 ): Promise<Result<string, { message: string; cause?: unknown }>> {
   try {
-    // Convert content to Uint8Array if needed
-    let data: Uint8Array;
-    if (typeof content === "string") {
-      data = new TextEncoder().encode(content);
-    } else if (content instanceof ArrayBuffer) {
-      data = new Uint8Array(content);
-    } else {
-      data = content;
-    }
+    // Convert string to Uint8Array
+    const data = new TextEncoder().encode(content);
 
     // Use Web Crypto API for SHA-256 hashing
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -106,7 +99,9 @@ export async function generateContentHashFromStream(
       offset += chunk.length;
     }
 
-    return generateContentHash(combined);
+    // Convert Uint8Array to string
+    const contentString = new TextDecoder().decode(combined);
+    return generateContentHash(contentString);
   } catch (error) {
     return err({
       message: error instanceof Error ? error.message : "Failed to hash stream",

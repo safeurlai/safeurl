@@ -28,7 +28,6 @@ export type {
   // User types
   ClerkUserId,
   JwtPayload,
-  ApiKeyCreation,
   ApiKey,
   ApiKeyValidation,
   WalletBalance,
@@ -69,22 +68,3 @@ export type ResultAsyncSuccess<T> =
  */
 export type ResultAsyncError<T> =
   T extends Promise<Result<unknown, infer E>> ? E : never;
-
-// ============================================================================
-// Common Domain Types
-// ============================================================================
-
-/**
- * Scan job state type (re-exported for convenience)
- */
-export type { ScanJobState } from "../schemas/scan";
-
-/**
- * Risk category type (re-exported for convenience)
- */
-export type { RiskCategory } from "../schemas/scan";
-
-/**
- * User type (re-exported for convenience)
- */
-export type { User } from "../schemas/user";

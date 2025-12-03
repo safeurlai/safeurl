@@ -11,6 +11,3 @@ export type {
   ApiKeyListResponse,
   ApiKeyCreation,
 } from "@safeurl/core/schemas";
-
-// API Key types for dashboard
-export type CreateApiKeyRequest = ApiKeyCreation;

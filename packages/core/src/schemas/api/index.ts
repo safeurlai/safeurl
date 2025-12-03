@@ -215,6 +215,31 @@ export const purchaseCreditsResponseSchema = z.object({
 });
 
 // ============================================================================
+// API Key Schemas
+// ============================================================================
+
+/**
+ * API key creation request schema
+ * Used when creating a new API key
+ */
+export const apiKeyCreationSchema = z.object({
+  name: z
+    .string()
+    .min(1, "API key name is required")
+    .max(100, "API key name exceeds maximum length")
+    .describe("Human-readable name for the API key"),
+  expiresAt: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("Optional expiration date (ISO 8601)"),
+  scopes: z
+    .array(z.enum(["scan:read", "scan:write", "credits:read"]))
+    .min(1, "At least one scope is required")
+    .describe("API key scopes/permissions"),
+});
+
+// ============================================================================
 // API Key Response Schemas
 // ============================================================================
 
@@ -248,6 +273,38 @@ export const createApiKeyResponseSchema = z.object({
  */
 export const apiKeyListResponseSchema = z.array(apiKeyResponseSchema);
 
+/**
+ * Revoke API key response schema
+ * Returned when successfully revoking an API key
+ */
+export const revokeApiKeyResponseSchema = z.object({
+  id: z.string().uuid().describe("ID of the revoked API key"),
+});
+
+/**
+ * API key error response schema
+ * Standardized error response for API key operations
+ */
+export const apiKeyErrorResponseSchema = z.object({
+  error: z.object({
+    code: z.string().describe("Machine-readable error code"),
+    message: z.string().describe("Human-readable error message"),
+    details: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe("Additional error details"),
+  }),
+  timestamp: z.string().datetime().describe("ISO 8601 timestamp of the error"),
+});
+
+/**
+ * API key UUID parameter schema
+ * Used for validating API key ID in route parameters
+ */
+export const apiKeyIdParamSchema = z.object({
+  id: z.string().uuid("Invalid API key ID format"),
+});
+
 // ============================================================================
 // Type Exports
 // ============================================================================
@@ -266,6 +323,10 @@ export type CreditTransaction = z.infer<typeof creditTransactionSchema>;
 export type PurchaseCreditsResponse = z.infer<
   typeof purchaseCreditsResponseSchema
 >;
+export type ApiKeyCreation = z.infer<typeof apiKeyCreationSchema>;
 export type ApiKeyResponse = z.infer<typeof apiKeyResponseSchema>;
 export type CreateApiKeyResponse = z.infer<typeof createApiKeyResponseSchema>;
 export type ApiKeyListResponse = z.infer<typeof apiKeyListResponseSchema>;
+export type RevokeApiKeyResponse = z.infer<typeof revokeApiKeyResponseSchema>;
+export type ApiKeyErrorResponse = z.infer<typeof apiKeyErrorResponseSchema>;
+export type ApiKeyIdParam = z.infer<typeof apiKeyIdParamSchema>;
