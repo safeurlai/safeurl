@@ -4,7 +4,11 @@
  */
 
 // Export app and App type (for Eden type inference)
-export { baseApp as app, app as compiledApp, type App } from "./app";
+export {
+  baseApp as app,
+  app as compiledApp,
+  type CFElysiaApp as App,
+} from "./app";
 
 // Export modules
 export * from "./modules";

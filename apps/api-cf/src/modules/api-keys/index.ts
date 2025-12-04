@@ -1,12 +1,12 @@
 import {
   apiKeyCreationSchema,
+  apiKeyIdParamSchema,
   apiKeyListResponseSchema,
-  apiKeyResponseSchema,
   createApiKeyResponseSchema,
   errorResponseSchema,
+  revokeApiKeyResponseSchema,
 } from "@safeurl/core";
 import { env } from "cloudflare:workers";
-import { Elysia } from "elysia";
 
 import { getDb } from "../../lib/db";
 import { privateSubrouter } from "../../plugins/auth";
@@ -213,13 +213,7 @@ export const apiKeysModule = privateSubrouter("/api-keys")
       }
     },
     {
-      params: {
-        type: "object",
-        properties: {
-          id: { type: "string", format: "uuid" },
-        },
-        required: ["id"],
-      },
+      params: apiKeyIdParamSchema,
       detail: {
         summary: "Revoke an API key",
         description:
@@ -227,12 +221,7 @@ export const apiKeysModule = privateSubrouter("/api-keys")
         tags: ["API Keys"],
       },
       response: {
-        200: {
-          type: "object",
-          properties: {
-            id: { type: "string", format: "uuid" },
-          },
-        },
+        200: revokeApiKeyResponseSchema,
         400: errorResponseSchema,
         404: errorResponseSchema,
         500: errorResponseSchema,

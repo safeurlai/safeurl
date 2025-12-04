@@ -6,10 +6,10 @@ import {
   scanResponseSchema,
 } from "@safeurl/core";
 import { env } from "cloudflare:workers";
-import { Elysia } from "elysia";
 
 import { getDb } from "../../lib/db";
 import type { ScanJobMessage } from "../../lib/queue";
+import { privateSubrouter } from "../../plugins";
 import { createScanJob, getScanJob } from "./service";
 
 /**
@@ -69,7 +69,7 @@ function formatScanResponse(job: {
 /**
  * Scans module routes
  */
-export const scansModule = new Elysia({ prefix: "/scans" })
+export const scansModule = privateSubrouter("/scans")
   .post(
     "/",
     async ({ body, set, userId }) => {

@@ -3,7 +3,6 @@ import { Elysia } from "elysia";
 import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 
 import { apiKeysModule } from "./modules/api-keys";
-import { creditsModule } from "./modules/credits";
 import { scansModule } from "./modules/scans";
 import { apiKeyOrClerkAuthPlugin } from "./plugins/api-key-auth";
 import { errorHandlerPlugin } from "./plugins/error-handler";
@@ -42,9 +41,7 @@ export const baseApp = new Elysia({
       .use(apiKeysModule)
       // Apply API key or Clerk auth to scans and credits modules
       // This allows both API key and Clerk authentication
-      .group("", (app) =>
-        app.use(apiKeyOrClerkAuthPlugin).use(scansModule).use(creditsModule),
-      ),
+      .group("", (app) => app.use(apiKeyOrClerkAuthPlugin).use(scansModule)),
   )
 
   // 404 handler
@@ -61,7 +58,7 @@ export const baseApp = new Elysia({
   });
 
 // Export app type before compilation (for Eden type inference)
-export type App = typeof baseApp;
+export type CFElysiaApp = typeof baseApp;
 
 // Compile the app for Cloudflare Workers runtime
 export const app = baseApp.compile();
