@@ -1,6 +1,6 @@
 import { treaty } from "@elysiajs/eden";
 
-import { App } from "~/app/api/[[...slugs]]/route";
+import { App as NextElysiaApp } from "~/app/api/[[...slugs]]/route";
 
 /**
  * Get the API base URL for the Next.js Elysia API
@@ -51,11 +51,9 @@ function getCloudflareApiUrl() {
  * Provides end-to-end type safety with the Next.js Elysia server
  * Used for API keys, checkout, and other locally-handled endpoints
  */
-export const { api } = treaty<App>(getNextJsApiUrl());
+export const { api } = treaty<NextElysiaApp>(getNextJsApiUrl());
 
 /**
  * Eden Treaty client for Cloudflare Workers API
- * Used for scans and credits endpoints that are proxied
- * @deprecated Use the main `api` client instead - all endpoints are now handled by Next.js
  */
-export const cfApi = treaty<App>(getCloudflareApiUrl());
+export const cfApi = treaty<CFElysiaApp>(getCloudflareApiUrl());

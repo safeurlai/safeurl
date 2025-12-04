@@ -1,3 +1,4 @@
+import { CreateScanResponse } from "@safeurl/core";
 import {
   useMutation,
   useQuery,
@@ -122,6 +123,8 @@ export function useCreditBalance() {
   });
 }
 
+type CreateScanPostRequest = Parameters<(typeof api.v1)["scans"]["post"]>[0];
+
 /**
  * Hook to create a new scan
  */
@@ -130,7 +133,9 @@ export function useCreateScan() {
 
   return useMutation({
     mutationFn: async (request: CreateScanRequest) => {
-      const { data, error } = await api.v1.scans.post(request);
+      const { data, error } = await api.v1.scans.post(
+        request as unknown as CreateScanPostRequest,
+      );
       if (error) {
         const errorData =
           typeof error.value === "string"
@@ -145,7 +150,7 @@ export function useCreateScan() {
       if (!data) {
         throw new ApiError("unknown_error", "Failed to create scan");
       }
-      return data as { id: string; state: string };
+      return data as unknown as CreateScanResponse;
     },
     onSuccess: (data) => {
       // Invalidate scans list to refetch
@@ -188,6 +193,8 @@ export function useApiKeys() {
   });
 }
 
+type CreateApiKeyRequest = Parameters<(typeof api.v1)["api-keys"]["post"]>[0];
+
 /**
  * Hook to create a new API key
  */
@@ -196,14 +203,9 @@ export function useCreateApiKey() {
 
   return useMutation({
     mutationFn: async (request: ApiKeyCreation) => {
-      const { data, error } = await api.v1["api-keys"].post({
-        name: request.name,
-        scopes: request.scopes,
-        expiresAt: request.expiresAt || undefined,
-        amount: 0,
-        paymentMethod: "stripe",
-        paymentDetails: {},
-      });
+      const { data, error } = await api.v1["api-keys"].post(
+        request as unknown as CreateApiKeyRequest,
+      );
       if (error) {
         const errorData =
           typeof error.value === "string"

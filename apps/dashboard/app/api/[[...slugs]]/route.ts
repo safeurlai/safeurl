@@ -1,19 +1,13 @@
 import { Elysia } from "elysia";
 
-import {
-  apiKeysModule,
-  checkoutModule,
-  creditsModule,
-  scansModule,
-  webhooksModule,
-} from "../modules";
+import { apiKeysModule, creditsModule, webhooksModule } from "../modules";
 
 /**
  * Elysia server for Next.js API routes
  * Composes modules for different API endpoints:
  * - API keys: handled directly in this server
  * - Credits: handled directly in this server
- * - Scans: proxied to Cloudflare Workers API (requires queue operations)
+ * - Scans: uses Eden treaty to call Cloudflare Workers API (requires queue operations)
  * - Checkout: Stripe Checkout session creation (authenticated)
  * - Webhooks: Stripe webhook handler (no auth, verifies Stripe signature)
  */
@@ -33,11 +27,7 @@ const app = new Elysia({ prefix: "/api" })
       // API Keys endpoints (handled directly, not proxied)
       .use(apiKeysModule)
       // Credits endpoints (handled directly, not proxied)
-      .use(creditsModule)
-      // Scans endpoints (proxied to Cloudflare Workers API - requires queue operations)
-      .use(scansModule)
-      // Checkout endpoints (Stripe Checkout, authenticated)
-      .use(checkoutModule),
+      .use(creditsModule),
   );
 
 // Export app type for Eden

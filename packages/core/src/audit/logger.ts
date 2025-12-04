@@ -1,9 +1,9 @@
 import { err, ok, Result } from "neverthrow";
 
 import {
-  AuditLogCreation,
   contentHashSchema,
   validateMetadataOnly,
+  type AuditLogCreation,
 } from "./schemas";
 
 // ============================================================================

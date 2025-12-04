@@ -20,7 +20,8 @@
     ],
     "paths": {
       "~/*": ["./*"]
-    }
+    },
+    "types": ["@safeurl/api-cf/global"]
   },
   "include": [
     "next-env.d.ts",
